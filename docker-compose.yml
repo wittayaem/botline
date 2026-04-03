@@ -47,6 +47,18 @@ services:
     ports:
       - "3306:3306"
 
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${DB_USER:-wittaya}
+      PMA_PASSWORD: ${DB_PASS}
+    depends_on:
+      - db
+
 volumes:
   mysql_data:
   storage_data:
