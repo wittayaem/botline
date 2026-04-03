@@ -1,4 +1,5 @@
 node_modules/
+portainer.env
 dist/
 .env
 data/
