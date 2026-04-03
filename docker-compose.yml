@@ -7,7 +7,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-wittaya}
+      DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME:-botline}
       LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
@@ -19,7 +19,7 @@ services:
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-haiku-4-5}
       OPENROUTER_CHAT_MODEL: ${OPENROUTER_CHAT_MODEL:-anthropic/claude-haiku-4-5}
       EQUIPMENT_API_URL: ${EQUIPMENT_API_URL:-https://it.pruksamoney.co.th/api/linebot_query.php}
-      EQUIPMENT_API_SECRET: ${EQUIPMENT_API_SECRET:-linebot_secret_pruksa_2025}
+      EQUIPMENT_API_SECRET: ${EQUIPMENT_API_SECRET}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-admin}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
       SESSION_SECRET: ${SESSION_SECRET}
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_NAME:-botline}
-      MYSQL_USER: ${DB_USER:-wittaya}
+      MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASS}
       MYSQL_ROOT_PASSWORD: ${DB_PASS}
     volumes:
@@ -54,7 +54,7 @@ services:
       - "8080:80"
     environment:
       PMA_HOST: db
-      PMA_USER: ${DB_USER:-wittaya}
+      PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASS}
     depends_on:
       - db
