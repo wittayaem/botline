@@ -34,11 +34,33 @@ export async function handleFile(event: MessageEvent, groupId: string) {
   const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');
   if (baseUrl) {
     const config = await getGroup(groupId);
-    const hasPassword = config?.download_password ? ' 🔒' : '';
+    const hasPassword = !!config?.download_password;
+    const dlUrl = `${baseUrl}/dl/${msg.id}`;
     try {
       await client.replyMessage({
         replyToken: event.replyToken,
-        messages: [{ type: 'text', text: `📁 บันทึกไฟล์แล้ว${hasPassword}\n${msg.fileName}\nดาวน์โหลดได้ที่: ${baseUrl}/dl/${msg.id}` }],
+        messages: [{
+          type: 'flex',
+          altText: `📁 บันทึกไฟล์แล้ว${hasPassword ? ' 🔒' : ''}`,
+          contents: {
+            type: 'bubble', size: 'kilo',
+            body: {
+              type: 'box', layout: 'vertical', spacing: 'sm',
+              contents: [
+                { type: 'text', text: '📁 บันทึกไฟล์แล้ว', weight: 'bold', size: 'md' },
+                { type: 'text', text: msg.fileName, size: 'sm', color: '#555555', wrap: true },
+                { type: 'text', text: hasPassword ? '🔒 ต้องใส่รหัสผ่านก่อนดาวน์โหลด' : 'กดปุ่มด้านล่างเพื่อดาวน์โหลด', size: 'sm', color: '#888888', wrap: true },
+              ],
+            },
+            footer: {
+              type: 'box', layout: 'vertical',
+              contents: [{
+                type: 'button', style: 'primary', color: '#06c755',
+                action: { type: 'uri', label: hasPassword ? '🔒 คลิกเพื่อดาวน์โหลด' : '📥 คลิกเพื่อดาวน์โหลด', uri: dlUrl },
+              }],
+            },
+          },
+        }],
       });
     } catch { /* replyToken หมดอายุ */ }
   }
