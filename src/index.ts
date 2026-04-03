@@ -6,6 +6,7 @@ import path from 'path';
 import webhookRouter from './webhook';
 import dashboardRouter from './routes/dashboard';
 import authRouter from './routes/auth';
+import downloadRouter from './routes/download';
 import { client } from './services/lineClient';
 import logger from './utils/logger';
 
@@ -28,8 +29,9 @@ app.use(session({
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-// 4. Auth + Dashboard
+// 4. Auth + Dashboard + Download
 app.use(authRouter);
+app.use(downloadRouter);
 app.use(dashboardRouter);
 
 // 5. Public image endpoint (LINE ต้องการ URL สาธารณะเพื่อส่งรูปในแชท)

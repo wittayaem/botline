@@ -1,5 +1,5 @@
 import { ImageEventMessage, MessageEvent } from '@line/bot-sdk';
-import { blobClient } from '../services/lineClient';
+import { blobClient, client } from '../services/lineClient';
 import { saveStream } from '../services/storage';
 import { saveMessage, updateCaption } from '../services/database';
 import { captionImage } from '../services/vision';
@@ -28,7 +28,20 @@ export async function handleImage(event: MessageEvent, groupId: string) {
 
   logger.info({ type: 'image', senderId, filePath }, 'Image saved');
 
-  // เช็ค config ก่อนวิเคราะห์รูปด้วย AI
+  // ส่ง link กลับใน LINE
+  const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');
+  if (baseUrl) {
+    const config = await getGroup(groupId);
+    const hasPassword = config?.download_password ? ' 🔒' : '';
+    try {
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: `📸 บันทึกรูปภาพแล้ว${hasPassword}\nดาวน์โหลดได้ที่: ${baseUrl}/dl/${msg.id}` }],
+      });
+    } catch { /* replyToken หมดอายุ ไม่ต้องทำอะไร */ }
+  }
+
+  // วิเคราะห์รูปด้วย AI
   const config = await getGroup(groupId);
   if (!config || !config.ai_caption) return;
 

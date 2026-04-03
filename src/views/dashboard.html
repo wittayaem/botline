@@ -455,6 +455,16 @@ function renderApproved(g, messages, statMap) {
           <div><div class="settings-label">บันทึกไฟล์</div></div>
           <label class="toggle"><input type="checkbox" id="save_files" ${g.save_files ? 'checked' : ''} onchange="updateFeature('save_files',this.checked)"><span class="slider"></span></label>
         </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">🔒 รหัสผ่านดาวน์โหลด</div>
+            <div class="settings-desc">ใส่รหัสเพื่อป้องกันการดาวน์โหลดรูป/ไฟล์ ปล่อยว่างถ้าไม่ต้องการ</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="name-input" id="download_password" type="text" value="${g.download_password || ''}" placeholder="ไม่มีรหัส">
+            <button class="save-btn" onclick="saveDownloadPassword()">บันทึก</button>
+          </div>
+        </div>
         ${!isRejected ? `
         <div class="settings-row">
           <div><div class="settings-label" style="color:#e53e3e">ปฏิเสธกลุ่มนี้</div></div>
@@ -594,6 +604,12 @@ async function rejectGroup(groupId) {
   groups.find(x => x.group_id === groupId).status = 'rejected';
   showToast('ปฏิเสธกลุ่มแล้ว', 'error');
   selectGroup(groupId);
+}
+
+async function saveDownloadPassword() {
+  const pw = document.getElementById('download_password').value.trim();
+  await saveGroup({ download_password: pw });
+  showToast(pw ? 'ตั้งรหัสผ่านแล้ว 🔒' : 'ลบรหัสผ่านแล้ว');
 }
 
 async function saveName() {

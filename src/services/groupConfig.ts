@@ -10,6 +10,7 @@ export interface GroupConfig {
   save_text: boolean;
   save_images: boolean;
   save_files: boolean;
+  download_password: string;
   ai_caption: boolean;   // เปิด/ปิด AI วิเคราะห์รูป
   ai_model: string;      // '' = ใช้ค่า default จาก .env
   ai_chat: boolean;      // เปิด/ปิด ให้ AI ตอบคำถาม (ai [คำถาม])
@@ -28,6 +29,7 @@ function toConfig(r: any): GroupConfig {
     save_files: !!r.save_files,
     ai_caption: r.ai_caption === undefined ? true : !!r.ai_caption,
     ai_model: r.ai_model || '',
+    download_password: r.download_password || '',
     ai_chat: r.ai_chat === undefined ? true : !!r.ai_chat,
     ai_equipment: r.ai_equipment === undefined ? true : !!r.ai_equipment,
     added_at: r.added_at,
@@ -53,7 +55,7 @@ export async function upsertGroup(groupId: string, name?: string): Promise<Group
 }
 
 export async function updateGroup(groupId: string, data: Partial<GroupConfig>) {
-  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment'];
+  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment'];
   const keys = Object.keys(data).filter(k => allowed.includes(k));
   if (!keys.length) return;
   const fields = keys.map(k => `${k} = ?`).join(', ');
