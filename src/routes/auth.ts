@@ -28,6 +28,24 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/register', (req, res) => {
+  if ((req.session as any).loggedIn) return res.redirect('/');
+  res.sendFile(path.join(__dirname, '../views/register.html'));
+});
+
+router.post('/register', async (req, res) => {
+  const { username, password, confirm_password } = req.body;
+  if (!username || !password || password !== confirm_password) {
+    return res.redirect('/register?error=1');
+  }
+  try {
+    await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, password]);
+    res.redirect('/login?success=1');
+  } catch {
+    res.redirect('/register?error=exists');
+  }
+});
+
 router.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
 });
