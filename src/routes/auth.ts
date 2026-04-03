@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import path from 'path';
+import bcrypt from 'bcrypt';
 import pool from '../services/db';
 
 const router = Router();
@@ -13,10 +14,12 @@ router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const [rows] = await pool.query<any[]>(
-      'SELECT * FROM users WHERE username = ? AND password = ? LIMIT 1',
-      [username, password]
+      'SELECT * FROM users WHERE username = ? LIMIT 1',
+      [username]
     );
-    if (rows.length > 0) {
+    const user = rows[0];
+    const valid = user && await bcrypt.compare(password, user.password);
+    if (valid) {
       (req.session as any).loggedIn = true;
       (req.session as any).username = username;
       req.session.save(() => res.redirect('/'));
@@ -39,7 +42,8 @@ router.post('/register', async (req, res) => {
     return res.redirect('/register?error=1');
   }
   try {
-    await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, password]);
+    const hashed = await bcrypt.hash(password, 10);
+    await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashed]);
     res.redirect('/login?success=1');
   } catch {
     res.redirect('/register?error=exists');
