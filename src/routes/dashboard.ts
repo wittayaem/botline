@@ -72,6 +72,17 @@ router.post('/api/groups/:groupId/send', requireLogin, async (req, res) => {
   }
 });
 
+// API: ดึงรูปภาพทั้งหมดในกลุ่ม
+router.get('/api/groups/:groupId/images', requireLogin, async (req, res) => {
+  const { groupId } = req.params;
+  const limit = Number(req.query.limit) || 200;
+  const [rows] = await (await import('../services/db')).default.query<any[]>(
+    `SELECT * FROM messages WHERE group_id = ? AND type = 'image' ORDER BY created_at DESC LIMIT ?`,
+    [groupId, limit]
+  );
+  res.json(rows);
+});
+
 // API: ค้นหารูปด้วย AI caption
 router.get('/api/groups/:groupId/search', requireLogin, async (req, res) => {
   const { groupId } = req.params;

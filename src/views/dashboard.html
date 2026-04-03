@@ -186,6 +186,20 @@
     .empty { text-align: center; padding: 80px 20px; color: #999; }
     .empty svg { width: 64px; height: 64px; fill: #ddd; margin-bottom: 16px; display: block; margin: 0 auto 16px; }
 
+    /* Image gallery */
+    .img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; padding: 20px; }
+    .img-thumb { aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer; background: #f0f0f0; position: relative; }
+    .img-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
+    .img-thumb:hover img { transform: scale(1.05); }
+    .img-thumb .img-date { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.5); color: white; font-size: 10px; padding: 3px 6px; }
+
+    /* Lightbox */
+    .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; object-fit: contain; }
+    .lightbox-close { position: absolute; top: 16px; right: 20px; color: white; font-size: 32px; cursor: pointer; line-height: 1; }
+    .lightbox-caption { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; background: rgba(0,0,0,0.5); padding: 6px 14px; border-radius: 20px; max-width: 80vw; text-align: center; }
+
     .toast {
       position: fixed; bottom: 24px; right: 24px;
       background: #333; color: white; padding: 10px 20px;
@@ -233,6 +247,7 @@
   <div id="tabsBar" style="display:none" class="tabs-bar">
     <button class="tab-btn active" onclick="switchTab('settings')">⚙️ ตั้งค่า</button>
     <button class="tab-btn" onclick="switchTab('messages')">💬 ข้อความล่าสุด <span class="refresh-dot"></span></button>
+    <button class="tab-btn" onclick="switchTab('images')">🖼️ รูปภาพ</button>
   </div>
   <div class="content" id="content">
     <div class="empty">
@@ -304,16 +319,19 @@ function groupItemHtml(g) {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', (i === 0 && tab === 'settings') || (i === 1 && tab === 'messages'));
+    btn.classList.toggle('active', (i === 0 && tab === 'settings') || (i === 1 && tab === 'messages') || (i === 2 && tab === 'images'));
   });
   document.getElementById('tab-settings').classList.toggle('active', tab === 'settings');
   document.getElementById('tab-messages').classList.toggle('active', tab === 'messages');
+  const imgTab = document.getElementById('tab-images');
+  if (imgTab) imgTab.classList.toggle('active', tab === 'images');
 
   if (tab === 'messages') {
     startMsgRefresh();
   } else {
     stopMsgRefresh();
   }
+  if (tab === 'images') loadImages();
 }
 
 function startMsgRefresh() {
@@ -402,7 +420,10 @@ function renderApproved(g, messages, statMap) {
 
       <div class="cards">
         <div class="card"><div class="label">ข้อความ</div><div class="value">${statMap.text || 0}</div></div>
-        <div class="card"><div class="label">รูปภาพ</div><div class="value">${statMap.image || 0}</div></div>
+        <div class="card" onclick="switchTab('images')" style="cursor:pointer;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 2px 12px rgba(6,199,85,0.2)'" onmouseout="this.style.boxShadow=''">
+          <div class="label">รูปภาพ</div><div class="value" style="color:#06c755">${statMap.image || 0}</div>
+          <div style="font-size:11px;color:#06c755;margin-top:4px">ดูทั้งหมด →</div>
+        </div>
         <div class="card"><div class="label">ไฟล์</div><div class="value">${statMap.file || 0}</div></div>
       </div>
 
@@ -520,6 +541,12 @@ function renderApproved(g, messages, statMap) {
           <input class="send-input" id="sendInput" placeholder="พิมพ์ข้อความที่ต้องการส่งไปกลุ่ม..." onkeydown="if(event.key==='Enter')sendMsg()">
           <button class="send-btn" onclick="sendMsg()">ส่ง</button>
         </div>
+      </div>
+    </div>
+
+    <div id="tab-images" class="tab-panel">
+      <div id="imgGrid" class="img-grid">
+        <div style="text-align:center;color:#aaa;padding:40px;grid-column:1/-1">กำลังโหลด...</div>
       </div>
     </div>
   `;
@@ -646,8 +673,47 @@ async function searchImg() {
   `;
 }
 
+async function loadImages() {
+  const grid = document.getElementById('imgGrid');
+  if (!grid || !currentGroupId) return;
+  grid.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;grid-column:1/-1">กำลังโหลด...</div>';
+  const res = await fetch(`/api/groups/${currentGroupId}/images`);
+  const images = await res.json();
+  if (!images.length) {
+    grid.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px;grid-column:1/-1">ยังไม่มีรูปภาพ</div>';
+    return;
+  }
+  grid.innerHTML = images.map((m, i) => `
+    <div class="img-thumb" onclick="openLightbox(${i})">
+      <img src="/api/files?path=${encodeURIComponent(m.file_path||'')}"
+           onerror="this.parentElement.style.display='none'">
+      <div class="img-date">${new Date(Number(m.timestamp)).toLocaleDateString('th-TH')}</div>
+    </div>
+  `).join('');
+  window._imgData = images;
+}
+
+function openLightbox(index) {
+  const img = window._imgData[index];
+  if (!img) return;
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lbImg').src = `/api/files?path=${encodeURIComponent(img.file_path||'')}`;
+  document.getElementById('lbCaption').textContent = img.caption || '';
+  lb.classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
 loadGroups();
 setInterval(loadGroups, 15000);
 </script>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">×</span>
+  <img id="lbImg" src="" onclick="event.stopPropagation()">
+  <div class="lightbox-caption" id="lbCaption"></div>
+</div>
 </body>
 </html>
