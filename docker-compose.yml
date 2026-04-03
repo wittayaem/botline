@@ -47,6 +47,13 @@ services:
     ports:
       - "3306:3306"
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
+
   phpmyadmin:
     image: phpmyadmin:latest
     restart: unless-stopped
