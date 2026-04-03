@@ -7,3 +7,4 @@ storage/images/
 storage/files/
 logs/
 *.log
+*.DS_Store
