@@ -7,7 +7,7 @@ RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+RUN npm run build && cp -r src/views dist/views
 
 # Production image
 FROM node:20-alpine
