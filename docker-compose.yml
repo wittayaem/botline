@@ -4,10 +4,25 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
-    env_file:
-      - .env
     environment:
       DB_HOST: db
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-botline_user}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME:-botline}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
+      LINE_GROUP_ID: ${LINE_GROUP_ID}
+      STORAGE_PATH: ${STORAGE_PATH:-./storage}
+      BASE_URL: ${BASE_URL}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-haiku-4-5}
+      OPENROUTER_CHAT_MODEL: ${OPENROUTER_CHAT_MODEL:-anthropic/claude-haiku-4-5}
+      EQUIPMENT_API_URL: ${EQUIPMENT_API_URL}
+      EQUIPMENT_API_SECRET: ${EQUIPMENT_API_SECRET}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-admin}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET}
     volumes:
       - storage_data:/app/storage
     depends_on:
