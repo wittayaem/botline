@@ -32,11 +32,12 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/register', (req, res) => {
-  if ((req.session as any).loggedIn) return res.redirect('/');
+  if (!(req.session as any).loggedIn) return res.redirect('/login');
   res.sendFile(path.join(__dirname, '../views/register.html'));
 });
 
 router.post('/register', async (req, res) => {
+  if (!(req.session as any).loggedIn) return res.redirect('/login');
   const { username, password, confirm_password } = req.body;
   if (!username || !password || password !== confirm_password) {
     return res.redirect('/register?error=1');
@@ -44,7 +45,7 @@ router.post('/register', async (req, res) => {
   try {
     const hashed = await bcrypt.hash(password, 10);
     await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashed]);
-    res.redirect('/login?success=1');
+    res.redirect('/register?success=1');
   } catch {
     res.redirect('/register?error=exists');
   }

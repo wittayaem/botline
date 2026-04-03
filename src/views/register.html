@@ -104,8 +104,8 @@
     <script>
       const p = new URLSearchParams(location.search);
       if (p.get('error') === 'exists') document.write('<div class="error">ชื่อผู้ใช้นี้มีอยู่แล้ว</div>');
-      else if (p.get('error') === '1') document.write('<div class="error">เกิดข้อผิดพลาด กรุณาลองใหม่</div>');
-      if (p.get('success')) document.write('<div class="success">สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ</div>');
+      else if (p.get('error') === '1') document.write('<div class="error">ข้อมูลไม่ถูกต้องหรือรหัสผ่านไม่ตรงกัน</div>');
+      if (p.get('success')) document.write('<div class="success">เพิ่มผู้ใช้สำเร็จ</div>');
     </script>
 
     <form method="POST" action="/register">
@@ -124,7 +124,7 @@
       <button type="submit">สมัครสมาชิก</button>
     </form>
 
-    <div class="link">มีบัญชีแล้ว? <a href="/login">เข้าสู่ระบบ</a></div>
+    <div class="link"><a href="/">กลับหน้าหลัก</a></div>
   </div>
 </body>
 </html>
