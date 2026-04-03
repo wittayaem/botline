@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import path from 'path';
+import pool from '../services/db';
 
 const router = Router();
 
@@ -8,16 +9,21 @@ router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/login.html'));
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const validUser = process.env.DASHBOARD_USERNAME || 'admin';
-  const validPass = process.env.DASHBOARD_PASSWORD || 'admin123';
-
-  if (username === validUser && password === validPass) {
-    (req.session as any).loggedIn = true;
-    (req.session as any).username = username;
-    req.session.save(() => res.redirect('/'));
-  } else {
+  try {
+    const [rows] = await pool.query<any[]>(
+      'SELECT * FROM users WHERE username = ? AND password = ? LIMIT 1',
+      [username, password]
+    );
+    if (rows.length > 0) {
+      (req.session as any).loggedIn = true;
+      (req.session as any).username = username;
+      req.session.save(() => res.redirect('/'));
+    } else {
+      res.redirect('/login?error=1');
+    }
+  } catch {
     res.redirect('/login?error=1');
   }
 });
