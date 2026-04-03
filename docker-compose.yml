@@ -7,7 +7,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-botline_user}
+      DB_USER: ${DB_USER:-wittaya}
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME:-botline}
       LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_NAME:-botline}
-      MYSQL_USER: ${DB_USER:-botline_user}
+      MYSQL_USER: ${DB_USER:-wittaya}
       MYSQL_PASSWORD: ${DB_PASS}
       MYSQL_ROOT_PASSWORD: ${DB_PASS}
     volumes:
