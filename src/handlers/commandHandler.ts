@@ -407,14 +407,6 @@ export function buildGuideMessage(groupId: string, baseUrl: string, config: any)
           msgBtn('➖ ลบผู้ดูแล', 'ลบผู้ดูแล', '#c62828'),
           msgBtn('🔑 สมัครผู้ดูแล (คนแรก)', 'สมัครผู้ดูแล', '#6d4c41'),
 
-          { type: 'separator', margin: 'md' },
-
-          // ===== AI =====
-          { type: 'text', text: '🤖 ค้นหารูปด้วย AI', weight: 'bold', size: 'sm', color: '#1565c0', margin: 'md' },
-          {
-            type: 'text', size: 'xs', color: '#888888', wrap: true, margin: 'sm',
-            text: 'ค้นหารูป [คำค้นหา]  —  ค้นหารูปจาก AI caption\nai [คำถาม]  —  ถามคำถาม AI ในกลุ่ม',
-          },
         ],
       },
     },
