@@ -477,7 +477,20 @@ async function selectGroup(groupId) {
   }
 
   const res = await fetch(`/api/groups/${groupId}/messages?limit=50`);
-  const { messages, stats } = await res.json();
+  if (!res.ok) {
+    if (res.status === 403) {
+      document.getElementById('tabsBar').style.display = 'none';
+      document.getElementById('content').innerHTML = `
+        <div style="padding:40px;text-align:center;color:#e53e3e;font-size:14px">
+          ⚠️ ไม่มีสิทธิ์เข้าถึงกลุ่มนี้<br>
+          <span style="color:#888;font-size:12px;margin-top:8px;display:block">กรุณา <a href="/logout" style="color:#06c755">ออกจากระบบ</a> แล้วเข้าสู่ระบบใหม่</span>
+        </div>`;
+    }
+    return;
+  }
+  const data = await res.json();
+  const messages = data.messages || [];
+  const stats = data.stats || [];
   const statMap = {};
   stats.forEach(s => statMap[s.type] = s.count);
 
@@ -900,6 +913,14 @@ async function showWelcomeManager() {
   renderSidebar();
 
   const res = await fetch('/api/settings/welcome');
+  if (!res.ok) {
+    document.getElementById('content').innerHTML = `
+      <div style="padding:40px;text-align:center;color:#e53e3e;font-size:14px">
+        ⚠️ ไม่สามารถโหลดข้อมูลได้ (${res.status})<br>
+        <span style="color:#888;font-size:12px;margin-top:8px;display:block">กรุณา <a href="/logout" style="color:#06c755">ออกจากระบบ</a> แล้วเข้าสู่ระบบใหม่</span>
+      </div>`;
+    return;
+  }
   const w = await res.json();
 
   document.getElementById('content').innerHTML = `
