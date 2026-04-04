@@ -791,16 +791,24 @@ function renderMessagesPanel(messages, statMap) {
 }
 
 async function approveGroup(groupId, expiresAt) {
-  await fetch(`/api/groups/${groupId}/approve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ expires_at: expiresAt || null }),
-  });
-  const g = groups.find(x => x.group_id === groupId);
-  if (g) { g.status = 'approved'; g.expires_at = expiresAt || null; }
-  showToast('อนุมัติกลุ่มแล้ว ✅', 'success');
-  renderGroups();
-  showApproveManager();
+  try {
+    const res = await fetch(`/api/groups/${groupId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expires_at: expiresAt || null }),
+    });
+    if (!res.ok) {
+      showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+      return;
+    }
+    // โหลดข้อมูลกลุ่มใหม่จาก server ให้ตรง
+    groups = await fetch('/api/groups').then(r => r.json());
+    showToast('อนุมัติกลุ่มแล้ว ✅', 'success');
+    renderGroups();
+    showApproveManager();
+  } catch (e) {
+    showToast('เกิดข้อผิดพลาด: ' + e.message, 'error');
+  }
 }
 
 async function showApproveManager() {
@@ -943,11 +951,16 @@ function doApprove(gid) {
   approveGroup(gid, expiresAt);
 }
 
-async function rejectGroup(groupId) {
+async function rejectGroup(groupId, fromManager) {
   await fetch(`/api/groups/${groupId}/reject`, { method: 'POST' });
-  groups.find(x => x.group_id === groupId).status = 'rejected';
+  groups = await fetch('/api/groups').then(r => r.json());
   showToast('ปฏิเสธกลุ่มแล้ว', 'error');
-  selectGroup(groupId);
+  renderGroups();
+  if (fromManager || document.getElementById('topbarTitle').textContent.includes('จัดการอนุมัติ')) {
+    showApproveManager();
+  } else {
+    selectGroup(groupId);
+  }
 }
 
 async function saveDownloadPassword() {

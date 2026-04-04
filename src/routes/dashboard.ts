@@ -138,12 +138,21 @@ router.post('/api/groups/:groupId', requireLogin, async (req, res) => {
 
 // API: อนุมัติกลุ่ม (พร้อมตั้งวันหมดอายุ)
 router.post('/api/groups/:groupId/approve', requireLogin, async (req, res) => {
-  const { expires_at } = req.body; // ISO string หรือ null
-  await updateGroup(req.params.groupId, {
-    status: 'approved',
-    expires_at: expires_at || null,
-  });
-  res.json({ success: true });
+  try {
+    const { expires_at } = req.body; // ISO string หรือ null
+    // แปลง ISO → MySQL DATETIME format (YYYY-MM-DD HH:MM:SS) หรือ null
+    let expiresAt: string | null = null;
+    if (expires_at) {
+      const d = new Date(expires_at);
+      if (!isNaN(d.getTime())) {
+        expiresAt = d.toISOString().slice(0, 19).replace('T', ' ');
+      }
+    }
+    await updateGroup(req.params.groupId, { status: 'approved', expires_at: expiresAt });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // API: ปฏิเสธกลุ่ม
