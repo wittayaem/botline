@@ -42,6 +42,29 @@ export async function handleCommand(
 ): Promise<boolean> {
   const t = text.trim();
 
+  // "สมัครผู้ดูแล" — bootstrap: ใช้ได้เมื่อกลุ่มนี้ยังไม่มี operator คนใดเลย
+  if (t === 'สมัครผู้ดูแล') {
+    const ops = await getOperators(groupId);
+    if (ops.length > 0) {
+      await client.replyMessage({ replyToken, messages: [{
+        type: 'text',
+        text: '⚠️ กลุ่มนี้มีผู้ดูแลอยู่แล้ว\nให้ผู้ดูแลที่มีสิทธิ์ 👑 ใช้คำสั่ง เพิ่มผู้ดูแล แทน',
+      }]});
+      return true;
+    }
+    let displayName = senderId;
+    try {
+      const profile = await client.getGroupMemberProfile(groupId, senderId);
+      displayName = profile.displayName;
+    } catch {}
+    await addOperator(groupId, senderId, displayName, true);
+    await client.replyMessage({ replyToken, messages: [{
+      type: 'text',
+      text: `✅ ลงทะเบียนเป็นผู้ดูแลกลุ่มแล้ว!\n👑 ${displayName}\n\nพิมพ์ ตั้งค่า เพื่อดูเมนูตั้งค่ากลุ่มได้เลยครับ`,
+    }]});
+    return true;
+  }
+
   const op = await isOperator(groupId, senderId);
   if (!op) return false;
 
