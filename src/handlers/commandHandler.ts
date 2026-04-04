@@ -250,6 +250,11 @@ export async function handlePostback(event: PostbackEvent) {
 export function buildSettingsMessage(config: any): any {
   const gid = config.group_id;
   const hasPassword = !!config.download_password;
+  const maskedPassword = hasPassword
+    ? config.download_password.length <= 2
+      ? '*'.repeat(config.download_password.length)
+      : config.download_password[0] + '*'.repeat(config.download_password.length - 2) + config.download_password.slice(-1)
+    : '';
 
   function row(label: string, field: string, current: boolean) {
     return {
@@ -288,8 +293,7 @@ export function buildSettingsMessage(config: any): any {
         backgroundColor: '#06c755',
         paddingAll: '16px',
         contents: [
-          { type: 'text', text: '⚙️ ตั้งค่ากลุ่ม', color: '#ffffff', size: 'xs' },
-          { type: 'text', text: config.name, color: '#ffffff', size: 'lg', weight: 'bold', wrap: true },
+          { type: 'text', text: '⚙️ ตั้งค่ากลุ่ม', color: '#ffffff', size: 'lg', weight: 'bold' },
         ],
       },
       body: {
@@ -317,7 +321,7 @@ export function buildSettingsMessage(config: any): any {
             contents: [
               { type: 'text', text: '🔒 รหัสดาวน์โหลด', flex: 3, size: 'sm' },
               { type: 'text', flex: 2, size: 'sm', align: 'end',
-                text: hasPassword ? `🔑 ${config.download_password}` : '— ไม่มี —',
+                text: hasPassword ? `🔑 ${maskedPassword}` : '— ไม่มี —',
                 color: hasPassword ? '#e65100' : '#aaaaaa' },
             ],
           },
