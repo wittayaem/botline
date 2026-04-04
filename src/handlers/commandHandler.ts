@@ -341,10 +341,6 @@ export function buildGuideMessage(groupId: string, baseUrl: string, config: any)
           // ===== ผู้ดูแล — ตั้งค่า =====
           { type: 'text', text: '⚙️ ผู้ดูแล — ตั้งค่ากลุ่ม', weight: 'bold', size: 'sm', color: '#e65100', margin: 'md' },
           msgBtn('⚙️ ตั้งค่า — เปิดการ์ดตั้งค่า', 'ตั้งค่า', '#e65100'),
-          {
-            type: 'text', size: 'xs', color: '#888888', wrap: true, margin: 'sm',
-            text: 'พิมพ์เพิ่มเติมเพื่อเปลี่ยนค่า:\nตั้งค่า บอท/รูป/ไฟล์/ข้อความ เปิด หรือ ปิด\nตั้งค่า รหัส [รหัสผ่าน]\nตั้งค่า รหัส ยกเลิก',
-          },
 
           { type: 'separator', margin: 'md' },
 
