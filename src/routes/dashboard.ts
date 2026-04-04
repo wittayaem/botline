@@ -129,10 +129,10 @@ router.post('/api/groups/:groupId', requireLogin, async (req, res) => {
   const { groupId } = req.params;
   const groupIds = await getAccessibleGroupIds(req);
   if (groupIds !== null && !groupIds.includes(groupId)) return res.status(403).json({ error: 'forbidden' });
-  const { name, enabled, save_text, save_images, save_files, download_password, ai_caption, ai_model, ai_chat, ai_equipment } = req.body;
+  const { name, enabled, save_text, save_images, save_files, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files } = req.body;
   let config = await getGroup(groupId);
   if (!config) await upsertGroup(groupId, name);
-  await updateGroup(groupId, { name, enabled, save_text, save_images, save_files, download_password, ai_caption, ai_model, ai_chat, ai_equipment });
+  await updateGroup(groupId, { name, enabled, save_text, save_images, save_files, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files });
   res.json({ success: true });
 });
 

@@ -304,6 +304,16 @@ export async function handlePostback(event: PostbackEvent) {
 export function buildGuideMessage(groupId: string, baseUrl: string, config: any): any {
   const galleryUrl = `${baseUrl}/g/${groupId}`;
   const hasPassword = !!config?.download_password;
+
+  const btn = (label: string, action: any, color = '#06c755') => ({
+    type: 'button', style: 'primary', color, height: 'sm', margin: 'sm',
+    action,
+  });
+  const msgBtn = (label: string, text: string, color = '#06c755') =>
+    btn(label, { type: 'message', label, text }, color);
+  const uriBtn = (label: string, uri: string, color = '#06c755') =>
+    btn(label, { type: 'uri', label, uri }, color);
+
   return {
     type: 'flex',
     altText: '📖 คู่มือคำสั่งบอท',
@@ -315,42 +325,45 @@ export function buildGuideMessage(groupId: string, baseUrl: string, config: any)
         backgroundColor: '#06c755', paddingAll: '16px',
         contents: [
           { type: 'text', text: '📖 คู่มือคำสั่งบอท', color: '#ffffff', size: 'lg', weight: 'bold' },
+          { type: 'text', text: 'กดปุ่มเพื่อใช้คำสั่งได้เลย', color: '#d4f5e2', size: 'xs', margin: 'xs' },
         ],
       },
       body: {
         type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none',
         contents: [
+          // ===== ทุกคน =====
           { type: 'text', text: '🌐 ทุกคนใช้ได้', weight: 'bold', size: 'sm', color: '#06c755' },
-          {
-            type: 'text', size: 'xs', color: '#444444', wrap: true, margin: 'sm',
-            text: 'ดูไฟล์  —  ลิ้งดูรูปและไฟล์ทั้งหมด\nดูรูป  —  ลิ้งดูรูปและไฟล์ทั้งหมด\nดาวน์โหลด  —  ลิ้งดูรูปและไฟล์ทั้งหมด\nคู่มือ  —  แสดงคู่มือนี้',
-          },
+          uriBtn(hasPassword ? '🔒 ดูรูปและไฟล์ทั้งหมด' : '📂 ดูรูปและไฟล์ทั้งหมด', galleryUrl),
+          msgBtn('📖 คู่มือ', 'คู่มือ', '#26a69a'),
+
           { type: 'separator', margin: 'md' },
-          { type: 'text', text: '🔐 ผู้ดูแลกลุ่มเท่านั้น', weight: 'bold', size: 'sm', color: '#e65100', margin: 'md' },
+
+          // ===== ผู้ดูแล — ตั้งค่า =====
+          { type: 'text', text: '⚙️ ผู้ดูแล — ตั้งค่ากลุ่ม', weight: 'bold', size: 'sm', color: '#e65100', margin: 'md' },
+          msgBtn('⚙️ ตั้งค่า — เปิดการ์ดตั้งค่า', 'ตั้งค่า', '#e65100'),
           {
-            type: 'text', size: 'xs', color: '#444444', wrap: true, margin: 'sm',
-            text: '//  —  เปิดหน้าตั้งค่า\nตั้งค่า  —  ดูการ์ดตั้งค่ากลุ่ม\nตั้งค่า บอท เปิด/ปิด\nตั้งค่า รูป เปิด/ปิด\nตั้งค่า ไฟล์ เปิด/ปิด\nตั้งค่า ข้อความ เปิด/ปิด\nตั้งค่า ลิงก์รูป เปิด/ปิด\nตั้งค่า ลิงก์ไฟล์ เปิด/ปิด\nตั้งค่า รหัส [รหัส]\nตั้งค่า รหัส ยกเลิก',
+            type: 'text', size: 'xs', color: '#888888', wrap: true, margin: 'sm',
+            text: 'พิมพ์เพิ่มเติมเพื่อเปลี่ยนค่า:\nตั้งค่า บอท/รูป/ไฟล์/ข้อความ เปิด หรือ ปิด\nตั้งค่า รหัส [รหัสผ่าน]\nตั้งค่า รหัส ยกเลิก',
           },
+
           { type: 'separator', margin: 'md' },
-          { type: 'text', text: '👥 จัดการผู้ดูแล', weight: 'bold', size: 'sm', color: '#e65100', margin: 'md' },
-          {
-            type: 'text', size: 'xs', color: '#444444', wrap: true, margin: 'sm',
-            text: 'สมัครผู้ดูแล  —  ลงทะเบียน (เมื่อยังไม่มีผู้ดูแล)\nเพิ่มผู้ดูแล  —  เพิ่มสมาชิกเป็นผู้ดูแล\nรายชื่อผู้ดูแล  —  ดูรายชื่อผู้ดูแล\nลบผู้ดูแล  —  ลบผู้ดูแลออก',
-          },
+
+          // ===== ผู้ดูแล — จัดการ =====
+          { type: 'text', text: '👥 ผู้ดูแล — จัดการสมาชิก', weight: 'bold', size: 'sm', color: '#e65100', margin: 'md' },
+          msgBtn('➕ เพิ่มผู้ดูแล', 'เพิ่มผู้ดูแล', '#e65100'),
+          msgBtn('📋 รายชื่อผู้ดูแล', 'รายชื่อผู้ดูแล', '#78909c'),
+          msgBtn('➖ ลบผู้ดูแล', 'ลบผู้ดูแล', '#c62828'),
+          msgBtn('🔑 สมัครผู้ดูแล (คนแรก)', 'สมัครผู้ดูแล', '#6d4c41'),
+
           { type: 'separator', margin: 'md' },
-          { type: 'text', text: '🔍 ค้นหารูปด้วย AI', weight: 'bold', size: 'sm', color: '#1565c0', margin: 'md' },
+
+          // ===== AI =====
+          { type: 'text', text: '🤖 ค้นหารูปด้วย AI', weight: 'bold', size: 'sm', color: '#1565c0', margin: 'md' },
           {
-            type: 'text', size: 'xs', color: '#444444', wrap: true, margin: 'sm',
-            text: 'ค้นหารูป [คำค้นหา]\nหารูป [คำค้นหา]\nai [คำถาม]  —  ถาม AI',
+            type: 'text', size: 'xs', color: '#888888', wrap: true, margin: 'sm',
+            text: 'ค้นหารูป [คำค้นหา]  —  ค้นหารูปจาก AI caption\nai [คำถาม]  —  ถามคำถาม AI ในกลุ่ม',
           },
         ],
-      },
-      footer: {
-        type: 'box', layout: 'vertical',
-        contents: [{
-          type: 'button', style: 'primary', color: '#06c755',
-          action: { type: 'uri', label: hasPassword ? '🔒 ดูไฟล์ทั้งหมด' : '📂 ดูไฟล์ทั้งหมด', uri: galleryUrl },
-        }],
       },
     },
   };

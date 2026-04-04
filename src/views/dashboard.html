@@ -804,7 +804,7 @@ async function approveGroup(groupId, expiresAt) {
     // โหลดข้อมูลกลุ่มใหม่จาก server ให้ตรง
     groups = await fetch('/api/groups').then(r => r.json());
     showToast('อนุมัติกลุ่มแล้ว ✅', 'success');
-    renderGroups();
+    renderSidebar();
     showApproveManager();
   } catch (e) {
     showToast('เกิดข้อผิดพลาด: ' + e.message, 'error');
@@ -955,7 +955,7 @@ async function rejectGroup(groupId, fromManager) {
   await fetch(`/api/groups/${groupId}/reject`, { method: 'POST' });
   groups = await fetch('/api/groups').then(r => r.json());
   showToast('ปฏิเสธกลุ่มแล้ว', 'error');
-  renderGroups();
+  renderSidebar();
   if (fromManager || document.getElementById('topbarTitle').textContent.includes('จัดการอนุมัติ')) {
     showApproveManager();
   } else {
