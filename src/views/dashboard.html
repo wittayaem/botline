@@ -208,6 +208,28 @@
     .empty { text-align: center; padding: 80px 20px; color: #999; }
     .empty svg { width: 64px; height: 64px; fill: #ddd; margin-bottom: 16px; display: block; margin: 0 auto 16px; }
 
+    /* File list */
+    .file-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .file-item {
+      display: flex; align-items: center; gap: 12px;
+      background: white; border: 1px solid #e8eaed; border-radius: 10px; padding: 12px 16px;
+      transition: box-shadow 0.15s;
+    }
+    .file-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .file-icon {
+      width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 20px; flex-shrink: 0; background: #fff8e1;
+    }
+    .file-info { flex: 1; overflow: hidden; }
+    .file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { font-size: 12px; color: #999; margin-top: 2px; }
+    .file-dl {
+      padding: 6px 14px; background: #e8f5e9; color: #2e7d32; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .file-dl:hover { background: #c8e6c9; }
+
     /* Image gallery */
     .img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; padding: 20px; }
     .img-thumb { aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer; background: #f0f0f0; position: relative; }
@@ -281,6 +303,7 @@
     <button class="tab-btn active" id="tabSettings" onclick="switchTab('settings')">⚙️ ตั้งค่า</button>
     <button class="tab-btn" id="tabMessages" onclick="switchTab('messages')">💬 ข้อความล่าสุด <span class="refresh-dot"></span></button>
     <button class="tab-btn" onclick="switchTab('images')">🖼️ รูปภาพ</button>
+    <button class="tab-btn" onclick="switchTab('files')">📁 ไฟล์</button>
   </div>
   <div class="content" id="content">
     <div class="empty">
@@ -369,13 +392,14 @@ function groupItemHtml(g) {
 
 function switchTab(tab) {
   currentTab = tab;
+  const tabMap = { settings: 0, messages: 1, images: 2, files: 3 };
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', (i === 0 && tab === 'settings') || (i === 1 && tab === 'messages') || (i === 2 && tab === 'images'));
+    btn.classList.toggle('active', i === tabMap[tab]);
   });
-  document.getElementById('tab-settings').classList.toggle('active', tab === 'settings');
-  document.getElementById('tab-messages').classList.toggle('active', tab === 'messages');
-  const imgTab = document.getElementById('tab-images');
-  if (imgTab) imgTab.classList.toggle('active', tab === 'images');
+  ['settings', 'messages', 'images', 'files'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
 
   if (tab === 'messages') {
     startMsgRefresh();
@@ -383,6 +407,7 @@ function switchTab(tab) {
     stopMsgRefresh();
   }
   if (tab === 'images') loadImages();
+  if (tab === 'files') loadFiles();
 }
 
 function startMsgRefresh() {
@@ -475,7 +500,10 @@ function renderApproved(g, messages, statMap) {
           <div class="label">รูปภาพ</div><div class="value" style="color:#06c755">${statMap.image || 0}</div>
           <div style="font-size:11px;color:#06c755;margin-top:4px">ดูทั้งหมด →</div>
         </div>
-        <div class="card"><div class="label">ไฟล์</div><div class="value">${statMap.file || 0}</div></div>
+        <div class="card" onclick="switchTab('files')" style="cursor:pointer;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 2px 12px rgba(255,152,0,0.2)'" onmouseout="this.style.boxShadow=''">
+          <div class="label">ไฟล์</div><div class="value" style="color:#e65100">${statMap.file || 0}</div>
+          <div style="font-size:11px;color:#e65100;margin-top:4px">ดูทั้งหมด →</div>
+        </div>
       </div>
 
       <div class="section">
@@ -608,6 +636,12 @@ function renderApproved(g, messages, statMap) {
     <div id="tab-images" class="tab-panel">
       <div id="imgGrid" class="img-grid">
         <div style="text-align:center;color:#aaa;padding:40px;grid-column:1/-1">กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <div id="tab-files" class="tab-panel">
+      <div id="fileList" class="file-list">
+        <div style="text-align:center;color:#aaa;padding:40px">กำลังโหลด...</div>
       </div>
     </div>
   `;
@@ -844,6 +878,49 @@ async function deleteUser(userId, username) {
   await fetch(`/api/users/${userId}`, { method: 'DELETE' });
   showToast('ลบผู้ใช้แล้ว');
   showUserManager();
+}
+
+function getFileIcon(name) {
+  if (!name) return '📄';
+  const ext = name.split('.').pop().toLowerCase();
+  if (['pdf'].includes(ext)) return '📕';
+  if (['doc','docx'].includes(ext)) return '📘';
+  if (['xls','xlsx','csv'].includes(ext)) return '📗';
+  if (['ppt','pptx'].includes(ext)) return '📙';
+  if (['zip','rar','7z','tar','gz'].includes(ext)) return '🗜️';
+  if (['mp4','mov','avi','mkv'].includes(ext)) return '🎬';
+  if (['mp3','wav','m4a'].includes(ext)) return '🎵';
+  if (['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼️';
+  return '📄';
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function loadFiles() {
+  const list = document.getElementById('fileList');
+  if (!list || !currentGroupId) return;
+  list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px">กำลังโหลด...</div>';
+  const res = await fetch(`/api/groups/${currentGroupId}/files`);
+  const files = await res.json();
+  if (!files.length) {
+    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px">ยังไม่มีไฟล์</div>';
+    return;
+  }
+  list.innerHTML = files.map(f => `
+    <div class="file-item">
+      <div class="file-icon">${getFileIcon(f.file_name)}</div>
+      <div class="file-info">
+        <div class="file-name" title="${escHtml(f.file_name || '')}">${escHtml(f.file_name || 'ไม่ทราบชื่อ')}</div>
+        <div class="file-meta">${formatBytes(f.file_size)}${f.file_size ? ' · ' : ''}${new Date(Number(f.timestamp)).toLocaleString('th-TH')}</div>
+      </div>
+      <a class="file-dl" href="/dl/${f.message_id}" target="_blank">📥 ดาวน์โหลด</a>
+    </div>
+  `).join('');
 }
 
 loadMe();

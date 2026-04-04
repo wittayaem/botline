@@ -139,6 +139,17 @@ router.post('/api/groups/:groupId/send', requireLogin, async (req, res) => {
   }
 });
 
+// API: ดึงไฟล์ทั้งหมดในกลุ่ม
+router.get('/api/groups/:groupId/files', requireLogin, async (req, res) => {
+  const { groupId } = req.params;
+  const limit = Number(req.query.limit) || 200;
+  const [rows] = await (await import('../services/db')).default.query<any[]>(
+    `SELECT * FROM messages WHERE group_id = ? AND type = 'file' ORDER BY created_at DESC LIMIT ?`,
+    [groupId, limit]
+  );
+  res.json(rows);
+});
+
 // API: ดึงรูปภาพทั้งหมดในกลุ่ม
 router.get('/api/groups/:groupId/images', requireLogin, async (req, res) => {
   const { groupId } = req.params;
