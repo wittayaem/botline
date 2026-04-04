@@ -35,7 +35,7 @@ export async function handleFile(event: MessageEvent, groupId: string) {
   const config = await getGroup(groupId);
   if (baseUrl && config?.reply_files !== false) {
     const hasPassword = !!config?.download_password;
-    const dlUrl = `${baseUrl}/dl/${msg.id}`;
+    const galleryUrl = `${baseUrl}/g/${groupId}`;
     try {
       await client.replyMessage({
         replyToken: event.replyToken,
@@ -49,14 +49,14 @@ export async function handleFile(event: MessageEvent, groupId: string) {
               contents: [
                 { type: 'text', text: '📁 บันทึกไฟล์แล้ว', weight: 'bold', size: 'md' },
                 { type: 'text', text: msg.fileName, size: 'sm', color: '#555555', wrap: true },
-                { type: 'text', text: hasPassword ? '🔒 ต้องใส่รหัสผ่านก่อนดาวน์โหลด' : 'กดปุ่มด้านล่างเพื่อดาวน์โหลด', size: 'sm', color: '#888888', wrap: true },
+                { type: 'text', text: hasPassword ? '🔒 ใส่รหัสผ่านก่อนเข้าดู' : 'กดดูและเลือกโหลดไฟล์ได้เลย', size: 'sm', color: '#888888', wrap: true },
               ],
             },
             footer: {
               type: 'box', layout: 'vertical',
               contents: [{
                 type: 'button', style: 'primary', color: '#06c755',
-                action: { type: 'uri', label: hasPassword ? '🔒 คลิกเพื่อดาวน์โหลด' : '📥 คลิกเพื่อดาวน์โหลด', uri: dlUrl },
+                action: { type: 'uri', label: hasPassword ? '🔒 ดูไฟล์ทั้งหมด' : '📁 ดูไฟล์ทั้งหมด', uri: galleryUrl },
               }],
             },
           },

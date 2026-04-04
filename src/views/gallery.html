@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>📂 แกลเลอรี่กลุ่ม</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; height: 100dvh; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: #f2f2f7;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== PASSWORD SCREEN ===== */
+    #pw-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .pw-card {
+      background: white;
+      border-radius: 20px;
+      padding: 36px 28px 28px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+      text-align: center;
+    }
+    .pw-icon { font-size: 52px; margin-bottom: 14px; }
+    .pw-title { font-size: 19px; font-weight: 700; color: #1a1a1a; }
+    .pw-sub { font-size: 13px; color: #999; margin: 6px 0 24px; line-height: 1.5; }
+    .pw-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e8e8e8;
+      border-radius: 12px;
+      font-size: 18px;
+      text-align: center;
+      letter-spacing: 3px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .pw-input:focus { border-color: #06c755; }
+    .pw-input.shake { animation: shake 0.3s; border-color: #ff3b30; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+    .pw-error { color: #ff3b30; font-size: 13px; margin-top: 8px; min-height: 20px; }
+    .pw-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 15px;
+      background: #06c755;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+    .pw-btn:active { background: #059e46; }
+
+    /* ===== GALLERY SCREEN ===== */
+    #gallery-screen { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+
+    .g-header {
+      background: #06c755;
+      color: white;
+      padding: 14px 16px 12px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .g-header h1 { font-size: 16px; font-weight: 700; }
+    .g-header .sub { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #e5e5ea;
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 13px 0;
+      border: none;
+      background: none;
+      font-size: 14px;
+      color: #8e8e93;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.15s;
+      -webkit-appearance: none;
+    }
+    .tab-btn.active { color: #06c755; border-bottom-color: #06c755; font-weight: 700; }
+
+    .tab-pane { flex: 1; overflow: hidden; display: none; flex-direction: column; }
+    .tab-pane.active { display: flex; }
+
+    /* ===== IMAGE GRID ===== */
+    .img-grid {
+      flex: 1;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      background: #c7c7cc;
+      padding: 2px;
+      -webkit-overflow-scrolling: touch;
+      align-content: start;
+    }
+    .img-cell {
+      aspect-ratio: 1 / 1;
+      background: #e5e5ea;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+    .img-cell img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .img-cell .dl-badge {
+      position: absolute;
+      bottom: 4px; right: 4px;
+      background: rgba(0,0,0,0.55);
+      border-radius: 6px;
+      padding: 3px 6px;
+      font-size: 14px;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    /* ===== LIGHTBOX ===== */
+    #lightbox {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.93);
+      z-index: 999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      display: none;
+    }
+    #lightbox.open { display: flex; }
+    #lb-img {
+      max-width: 100%;
+      max-height: calc(100dvh - 90px);
+      object-fit: contain;
+      border-radius: 4px;
+    }
+    .lb-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .lb-close {
+      background: rgba(255,255,255,0.18);
+      border: none;
+      color: white;
+      font-size: 20px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lb-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.5);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lb-date { flex: 1; color: rgba(255,255,255,0.65); font-size: 12px; }
+    .lb-dl-btn {
+      background: #06c755;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ===== FILE LIST ===== */
+    .search-wrap {
+      padding: 10px 12px;
+      background: white;
+      border-bottom: 1px solid #e5e5ea;
+      flex-shrink: 0;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #e5e5ea;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      background: #f9f9f9;
+    }
+    .search-wrap input:focus { border-color: #06c755; background: white; }
+
+    .file-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .file-item {
+      background: white;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .file-badge {
+      width: 46px; height: 46px;
+      border-radius: 10px;
+      background: #e8f8ee;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+      color: #06c755;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+    }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #1c1c1e;
+    }
+    .file-meta { font-size: 11px; color: #aeaeb2; margin-top: 3px; }
+    .file-dl {
+      background: #06c755;
+      color: white;
+      border: none;
+      border-radius: 9px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+
+    /* ===== STATES ===== */
+    .center-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #c7c7cc;
+      gap: 10px;
+      padding: 40px;
+    }
+    .center-state .ico { font-size: 52px; }
+    .center-state p { font-size: 14px; color: #aeaeb2; }
+  </style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="pw-screen" style="display:none">
+  <div class="pw-card">
+    <div class="pw-icon">🔒</div>
+    <div class="pw-title">ใส่รหัสผ่านก่อนเข้าดู</div>
+    <div class="pw-sub">ไฟล์และรูปภาพในกลุ่มนี้<br>ถูกป้องกันด้วยรหัสผ่าน</div>
+    <input type="password" id="pw-input" class="pw-input" placeholder="รหัสผ่าน" autocomplete="off" inputmode="text">
+    <div class="pw-error" id="pw-error"></div>
+    <button class="pw-btn" id="pw-btn">เข้าดู →</button>
+  </div>
+</div>
+
+<!-- GALLERY SCREEN -->
+<div id="gallery-screen">
+  <div class="g-header">
+    <h1>📂 ไฟล์และรูปภาพ</h1>
+    <div class="sub" id="g-name"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-btn-images" onclick="switchTab('images')">🖼️ รูปภาพ</button>
+    <button class="tab-btn" id="tab-btn-files" onclick="switchTab('files')">📁 ไฟล์</button>
+  </div>
+
+  <!-- Images pane -->
+  <div class="tab-pane active" id="pane-images">
+    <div class="img-grid" id="img-grid">
+      <div class="center-state" style="grid-column:1/-1"><div class="ico">⏳</div><p>กำลังโหลด...</p></div>
+    </div>
+  </div>
+
+  <!-- Files pane -->
+  <div class="tab-pane" id="pane-files">
+    <div class="search-wrap">
+      <input type="search" id="file-search" placeholder="🔍 ค้นหาชื่อไฟล์..." autocomplete="off">
+    </div>
+    <div class="file-list" id="file-list">
+      <div class="center-state"><div class="ico">⏳</div><p>กำลังโหลด...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <div class="lb-top">
+    <button class="lb-close" onclick="closeLb()">✕</button>
+  </div>
+  <img id="lb-img" src="" alt="">
+  <div class="lb-bottom">
+    <span class="lb-date" id="lb-date"></span>
+    <a id="lb-dl" class="lb-dl-btn" href="#" download>📥 ดาวน์โหลด</a>
+  </div>
+</div>
+
+<script>
+var groupId = (location.pathname.match(/\/g\/([^/?#]+)/) || [])[1] || '';
+var fileDebTimer;
+
+// ===== INIT =====
+async function init() {
+  var info = await fetch('/g-info/' + groupId).then(function(r){ return r.json(); }).catch(function(){ return {error:1}; });
+  if (info.error) {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100dvh;flex-direction:column;gap:12px;color:#999"><div style="font-size:52px">😕</div><div>ไม่พบกลุ่มนี้</div></div>';
+    return;
+  }
+  document.getElementById('g-name').textContent = info.name;
+  document.title = '📂 ' + info.name;
+
+  if (info.needPassword && !info.authed) {
+    document.getElementById('pw-screen').style.display = 'flex';
+  } else {
+    showGallery();
+  }
+}
+
+// ===== PASSWORD =====
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('pw-input').addEventListener('keydown', function(e){ if(e.key === 'Enter') submitPw(); });
+  document.getElementById('pw-btn').addEventListener('click', submitPw);
+  document.getElementById('lightbox').addEventListener('click', function(e){ if(e.target === this) closeLb(); });
+  document.getElementById('file-search').addEventListener('input', function() {
+    clearTimeout(fileDebTimer);
+    fileDebTimer = setTimeout(function(){ loadFiles(document.getElementById('file-search').value.trim()); }, 300);
+  });
+  init();
+});
+
+async function submitPw() {
+  var pw = document.getElementById('pw-input').value;
+  var errEl = document.getElementById('pw-error');
+  var inp = document.getElementById('pw-input');
+  errEl.textContent = '';
+  var res = await fetch('/g/' + groupId + '/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw }),
+  }).then(function(r){ return r.json(); });
+  if (res.ok) {
+    document.getElementById('pw-screen').style.display = 'none';
+    showGallery();
+  } else {
+    inp.classList.add('shake');
+    errEl.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+    inp.value = '';
+    inp.focus();
+    setTimeout(function(){ inp.classList.remove('shake'); }, 400);
+  }
+}
+
+function showGallery() {
+  document.getElementById('gallery-screen').style.display = 'flex';
+  loadImages();
+  loadFiles('');
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  document.getElementById('tab-btn-images').classList.toggle('active', tab === 'images');
+  document.getElementById('tab-btn-files').classList.toggle('active', tab === 'files');
+  document.getElementById('pane-images').classList.toggle('active', tab === 'images');
+  document.getElementById('pane-files').classList.toggle('active', tab === 'files');
+}
+
+// ===== IMAGES =====
+async function loadImages() {
+  var grid = document.getElementById('img-grid');
+  var rows = await fetch('/g-api/' + groupId + '/images').then(function(r){ return r.json(); }).catch(function(){ return []; });
+  if (!Array.isArray(rows) || rows.length === 0) {
+    grid.innerHTML = '<div class="center-state" style="grid-column:1/-1"><div class="ico">📭</div><p>ยังไม่มีรูปภาพ</p></div>';
+    return;
+  }
+  grid.innerHTML = rows.map(function(r) {
+    return '<div class="img-cell" onclick="openLb(\'' + esc(r.message_id) + '\',\'' + esc(r.created_at||'') + '\')">'
+      + '<img src="/g-file/' + groupId + '/' + r.message_id + '" loading="lazy" alt="">'
+      + '<div class="dl-badge">📥</div></div>';
+  }).join('');
+}
+
+// ===== LIGHTBOX =====
+function openLb(msgId, date) {
+  var url = '/g-file/' + groupId + '/' + msgId;
+  document.getElementById('lb-img').src = url;
+  document.getElementById('lb-dl').href = url;
+  document.getElementById('lb-date').textContent = date ? fmtDate(date) : '';
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLb() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+}
+
+// ===== FILES =====
+async function loadFiles(q) {
+  var list = document.getElementById('file-list');
+  var url = '/g-api/' + groupId + '/files' + (q ? '?q=' + encodeURIComponent(q) : '');
+  var rows = await fetch(url).then(function(r){ return r.json(); }).catch(function(){ return []; });
+  if (!Array.isArray(rows) || rows.length === 0) {
+    list.innerHTML = '<div class="center-state"><div class="ico">📭</div><p>' + (q ? 'ไม่พบไฟล์ที่ค้นหา' : 'ยังไม่มีไฟล์') + '</p></div>';
+    return;
+  }
+  list.innerHTML = rows.map(function(r) {
+    var ext = fileExt(r.file_name);
+    var dlUrl = '/g-file/' + groupId + '/' + r.message_id;
+    return '<div class="file-item">'
+      + '<div class="file-badge">' + esc(ext) + '</div>'
+      + '<div class="file-info">'
+      + '<div class="file-name">' + esc(r.file_name || 'ไฟล์') + '</div>'
+      + '<div class="file-meta">' + fmtSize(r.file_size) + (r.file_size ? ' · ' : '') + fmtDate(r.created_at) + '</div>'
+      + '</div>'
+      + '<a class="file-dl" href="' + dlUrl + '" download="' + esc(r.file_name||'file') + '">📥 โหลด</a>'
+      + '</div>';
+  }).join('');
+}
+
+// ===== HELPERS =====
+function fileExt(name) {
+  if (!name) return '?';
+  var p = name.lastIndexOf('.');
+  if (p < 0) return '?';
+  var ext = name.substring(p + 1);
+  return ext.length > 5 ? ext.substring(0,5) : ext || '?';
+}
+function fmtSize(b) {
+  if (!b || b <= 0) return '';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return Math.round(b/1024) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+function fmtDate(d) {
+  if (!d) return '';
+  try {
+    return new Date(d).toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'2-digit' });
+  } catch(e) { return d; }
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+</body>
+</html>
