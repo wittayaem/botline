@@ -616,7 +616,15 @@ function renderApproved(g, messages, statMap) {
       </div>
 
       <div class="section">
-        <div class="section-header">🤖 ตั้งค่า AI วิเคราะห์รูปภาพ</div>
+        <div class="section-header" style="justify-content:space-between">
+          🤖 ตั้งค่า AI
+          <button onclick="disableAllAI()"
+            style="padding:4px 14px;background:#fee2e2;color:#c62828;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">
+            🚫 ปิด AI ทั้งหมด
+          </button>
+        </div>
+
+        <div style="padding:8px 20px 2px;font-size:12px;font-weight:700;color:#888;letter-spacing:0.3px;text-transform:uppercase">วิเคราะห์รูปภาพ</div>
         <div class="settings-row">
           <div>
             <div class="settings-label">เปิดใช้ AI วิเคราะห์รูป</div>
@@ -645,10 +653,8 @@ function renderApproved(g, messages, statMap) {
             </optgroup>
           </select>
         </div>
-      </div>
 
-      <div class="section">
-        <div class="section-header">💬 ตั้งค่า AI ตอบคำถาม LINE Bot</div>
+        <div style="padding:12px 20px 2px;font-size:12px;font-weight:700;color:#888;letter-spacing:0.3px;text-transform:uppercase;border-top:1px solid #f0f0f0;margin-top:4px">ตอบคำถาม LINE Bot</div>
         <div class="settings-row">
           <div>
             <div class="settings-label">เปิดใช้ AI ตอบคำถาม</div>
@@ -984,6 +990,19 @@ async function updateFeature(key, value) {
   groups.find(g => g.group_id === currentGroupId)[key] = value;
   renderSidebar();
   showToast('บันทึกการตั้งค่าแล้ว');
+}
+
+async function disableAllAI() {
+  const fields = { ai_caption: false, ai_chat: false, ai_equipment: false };
+  await saveGroup(fields);
+  const g = groups.find(g => g.group_id === currentGroupId);
+  Object.assign(g, fields);
+  ['ai_caption','ai_chat','ai_equipment'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  renderSidebar();
+  showToast('ปิด AI ทั้งหมดแล้ว', 'error');
 }
 
 async function saveGroup(data) {
