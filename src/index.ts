@@ -10,6 +10,7 @@ import downloadRouter from './routes/download';
 import { client } from './services/lineClient';
 import logger from './utils/logger';
 import pool from './services/db';
+import { getAllGroups, updateGroup } from './services/groupConfig';
 
 async function runMigrations() {
   await pool.query(`
@@ -35,6 +36,7 @@ async function runMigrations() {
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_text     TEXT`,
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_image_url VARCHAR(500) DEFAULT ''`,
     `ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_size BIGINT NULL`,
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS expires_at DATETIME NULL`,
   ];
   for (const sql of migrations) {
     await pool.query(sql).catch(() => {});
@@ -93,7 +95,26 @@ app.post('/send', async (req, res) => {
   }
 });
 
+async function checkExpiredGroups() {
+  try {
+    const groups = await getAllGroups();
+    const now = new Date();
+    for (const g of groups) {
+      if (g.status === 'approved' && g.expires_at && new Date(g.expires_at) < now) {
+        await updateGroup(g.group_id, { status: 'rejected' });
+        logger.info({ groupId: g.group_id, expires_at: g.expires_at }, 'Group expired → rejected');
+      }
+    }
+  } catch (e) {
+    logger.error(e, 'checkExpiredGroups error');
+  }
+}
+
 runMigrations().then(() => {
+  // ตรวจสอบกลุ่มหมดอายุทุก 1 นาที
+  setInterval(checkExpiredGroups, 60_000);
+  checkExpiredGroups();
+
   app.listen(PORT, () => {
     console.log(`\n✅ LINE Bot server running on port ${PORT}`);
     console.log(`   Webhook  : http://localhost:${PORT}/webhook`);

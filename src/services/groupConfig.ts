@@ -11,15 +11,16 @@ export interface GroupConfig {
   save_images: boolean;
   save_files: boolean;
   download_password: string;
-  ai_caption: boolean;   // เปิด/ปิด AI วิเคราะห์รูป
-  ai_model: string;      // '' = ใช้ค่า default จาก .env
-  ai_chat: boolean;      // เปิด/ปิด ให้ AI ตอบคำถาม (ai [คำถาม])
-  ai_equipment: boolean; // เปิด/ปิด ดึงข้อมูลจากระบบแจ้งซ่อม it.pruksamoney.co.th
-  reply_images: boolean;     // ส่ง flex message กลับเมื่อบันทึกรูป
-  reply_files: boolean;      // ส่ง flex message กลับเมื่อบันทึกไฟล์
-  welcome_enabled: boolean;  // เปิด/ปิดข้อความต้อนรับ
-  welcome_text: string;      // ข้อความต้อนรับ
-  welcome_image_url: string; // URL รูปต้อนรับ (ถ้ามี)
+  ai_caption: boolean;
+  ai_model: string;
+  ai_chat: boolean;
+  ai_equipment: boolean;
+  reply_images: boolean;
+  reply_files: boolean;
+  welcome_enabled: boolean;
+  welcome_text: string;
+  welcome_image_url: string;
+  expires_at?: string | null; // วันหมดอายุ (ISO string) หรือ null = ไม่มีกำหนด
   added_at?: string;
 }
 
@@ -42,6 +43,7 @@ function toConfig(r: any): GroupConfig {
     welcome_enabled: !!r.welcome_enabled,
     welcome_text: r.welcome_text || '',
     welcome_image_url: r.welcome_image_url || '',
+    expires_at: r.expires_at ? new Date(r.expires_at).toISOString() : null,
     added_at: r.added_at,
   };
 }
@@ -65,7 +67,7 @@ export async function upsertGroup(groupId: string, name?: string): Promise<Group
 }
 
 export async function updateGroup(groupId: string, data: Partial<GroupConfig>) {
-  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files', 'welcome_enabled', 'welcome_text', 'welcome_image_url'];
+  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files', 'welcome_enabled', 'welcome_text', 'welcome_image_url', 'expires_at'];
   const keys = Object.keys(data).filter(k => allowed.includes(k));
   if (!keys.length) return;
   const fields = keys.map(k => `${k} = ?`).join(', ');

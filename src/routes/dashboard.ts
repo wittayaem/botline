@@ -136,9 +136,13 @@ router.post('/api/groups/:groupId', requireLogin, async (req, res) => {
   res.json({ success: true });
 });
 
-// API: อนุมัติกลุ่ม
+// API: อนุมัติกลุ่ม (พร้อมตั้งวันหมดอายุ)
 router.post('/api/groups/:groupId/approve', requireLogin, async (req, res) => {
-  await updateGroup(req.params.groupId, { status: 'approved' });
+  const { expires_at } = req.body; // ISO string หรือ null
+  await updateGroup(req.params.groupId, {
+    status: 'approved',
+    expires_at: expires_at || null,
+  });
   res.json({ success: true });
 });
 
