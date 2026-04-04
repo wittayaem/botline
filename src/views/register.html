@@ -3,128 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สมัครสมาชิก — LINE Bot Dashboard</title>
+  <title>เพิ่มผู้ใช้ — LINE Bot Dashboard</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #06c755;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: #06c755; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
     .card {
-      background: white;
-      border-radius: 16px;
-      padding: 40px;
-      width: 360px;
+      background: white; border-radius: 16px; padding: 40px; width: 420px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.15);
     }
-    .logo {
-      text-align: center;
-      margin-bottom: 28px;
-    }
+    .logo { text-align: center; margin-bottom: 28px; }
     .logo svg { width: 56px; height: 56px; }
-    h1 {
-      text-align: center;
-      font-size: 20px;
-      color: #222;
-      margin-bottom: 24px;
-    }
+    h1 { text-align: center; font-size: 20px; color: #222; margin-bottom: 24px; }
     .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
-    input {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1.5px solid #ddd;
-      border-radius: 8px;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+    input, select {
+      width: 100%; padding: 10px 14px; border: 1.5px solid #ddd;
+      border-radius: 8px; font-size: 15px; outline: none; transition: border-color 0.2s;
     }
-    input:focus { border-color: #06c755; }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #06c755;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 8px;
-      transition: background 0.2s;
+    input:focus, select:focus { border-color: #06c755; }
+    .role-group { display: flex; gap: 8px; }
+    .role-btn {
+      flex: 1; padding: 10px; border: 1.5px solid #ddd; border-radius: 8px;
+      background: white; cursor: pointer; font-size: 13px; text-align: center;
+      transition: all 0.2s;
     }
-    button:hover { background: #05b04a; }
-    .error {
-      background: #fff0f0;
-      border: 1px solid #ffcccc;
-      color: #cc0000;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      margin-bottom: 16px;
-      text-align: center;
+    .role-btn.active { border-color: #06c755; background: #e8f5e9; color: #2e7d32; font-weight: 600; }
+    .groups-section { display: none; }
+    .groups-section.show { display: block; }
+    .group-check { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; }
+    .group-check input[type=checkbox] { width: auto; }
+    button[type=submit] {
+      width: 100%; padding: 12px; background: #06c755; color: white;
+      border: none; border-radius: 8px; font-size: 16px; font-weight: 600;
+      cursor: pointer; margin-top: 8px; transition: background 0.2s;
     }
-    .success {
-      background: #f0fff4;
-      border: 1px solid #b2f5c8;
-      color: #1a7a3a;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      margin-bottom: 16px;
-      text-align: center;
-    }
-    .link {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 13px;
-      color: #888;
-    }
-    .link a {
-      color: #06c755;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .link a:hover { text-decoration: underline; }
+    button[type=submit]:hover { background: #05b04a; }
+    .error { background: #fff0f0; border: 1px solid #ffcccc; color: #cc0000; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+    .success { background: #f0fff4; border: 1px solid #b2f5c8; color: #1a7a3a; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+    .link { text-align: center; margin-top: 20px; font-size: 13px; color: #888; }
+    .link a { color: #06c755; text-decoration: none; font-weight: 600; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="#06c755">
-        <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.471 8.652V24l4.086-2.242c1.09.301 2.246.464 3.443.464 6.629 0 12-4.975 12-11.111C24 4.974 18.629 0 12 0"/>
-      </svg>
-    </div>
-    <h1>สมัครสมาชิก</h1>
-
-    <script>
-      const p = new URLSearchParams(location.search);
-      if (p.get('error') === 'exists') document.write('<div class="error">ชื่อผู้ใช้นี้มีอยู่แล้ว</div>');
-      else if (p.get('error') === '1') document.write('<div class="error">ข้อมูลไม่ถูกต้องหรือรหัสผ่านไม่ตรงกัน</div>');
-      if (p.get('success')) document.write('<div class="success">เพิ่มผู้ใช้สำเร็จ</div>');
-    </script>
-
-    <form method="POST" action="/register">
-      <div class="form-group">
-        <label>ชื่อผู้ใช้</label>
-        <input type="text" name="username" placeholder="username" autofocus required>
-      </div>
-      <div class="form-group">
-        <label>รหัสผ่าน</label>
-        <input type="password" name="password" placeholder="••••••••" required>
-      </div>
-      <div class="form-group">
-        <label>ยืนยันรหัสผ่าน</label>
-        <input type="password" name="confirm_password" placeholder="••••••••" required>
-      </div>
-      <button type="submit">สมัครสมาชิก</button>
-    </form>
-
-    <div class="link"><a href="/">กลับหน้าหลัก</a></div>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="#06c755">
+      <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.471 8.652V24l4.086-2.242c1.09.301 2.246.464 3.443.464 6.629 0 12-4.975 12-11.111C24 4.974 18.629 0 12 0"/>
+    </svg>
   </div>
+  <h1>เพิ่มผู้ใช้งาน</h1>
+
+  <div id="msg"></div>
+
+  <form method="POST" action="/register" id="form">
+    <div class="form-group">
+      <label>ชื่อผู้ใช้</label>
+      <input type="text" name="username" placeholder="username" autofocus required>
+    </div>
+    <div class="form-group">
+      <label>รหัสผ่าน</label>
+      <input type="password" name="password" placeholder="••••••••" required>
+    </div>
+    <div class="form-group">
+      <label>ยืนยันรหัสผ่าน</label>
+      <input type="password" name="confirm_password" placeholder="••••••••" required>
+    </div>
+    <div class="form-group">
+      <label>สิทธิ์การใช้งาน</label>
+      <div class="role-group">
+        <div class="role-btn" onclick="setRole('admin',this)">👑 Admin</div>
+        <div class="role-btn active" onclick="setRole('moderator',this)">🛡️ ผู้ดูแล</div>
+        <div class="role-btn" onclick="setRole('viewer',this)">👁️ ผู้ใช้</div>
+      </div>
+      <input type="hidden" name="role" id="roleInput" value="moderator">
+    </div>
+
+    <div class="form-group groups-section" id="groupsSection">
+      <label>กำหนดห้องที่เข้าถึงได้</label>
+      <div id="groupList">กำลังโหลด...</div>
+    </div>
+
+    <button type="submit">เพิ่มผู้ใช้</button>
+  </form>
+  <div class="link"><a href="/">กลับหน้าหลัก</a></div>
+</div>
+
+<script>
+const p = new URLSearchParams(location.search);
+if (p.get('error') === 'exists') document.getElementById('msg').innerHTML = '<div class="error">ชื่อผู้ใช้นี้มีอยู่แล้ว</div>';
+else if (p.get('error') === '1') document.getElementById('msg').innerHTML = '<div class="error">ข้อมูลไม่ถูกต้องหรือรหัสผ่านไม่ตรงกัน</div>';
+if (p.get('success')) document.getElementById('msg').innerHTML = '<div class="success">เพิ่มผู้ใช้สำเร็จ</div>';
+
+let groups = [];
+
+async function loadGroups() {
+  const res = await fetch('/api/groups');
+  groups = await res.json();
+  renderGroups();
+}
+
+function renderGroups() {
+  const approved = groups.filter(g => g.status === 'approved');
+  document.getElementById('groupList').innerHTML = approved.length
+    ? approved.map(g => `
+        <label class="group-check">
+          <input type="checkbox" name="group_ids" value="${g.group_id}">
+          ${g.name} <span style="font-size:11px;color:#aaa">${g.group_id.slice(0,12)}...</span>
+        </label>`).join('')
+    : '<p style="color:#aaa;font-size:13px">ยังไม่มีกลุ่มที่อนุมัติ</p>';
+}
+
+function setRole(role, el) {
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('roleInput').value = role;
+  const section = document.getElementById('groupsSection');
+  section.classList.toggle('show', role !== 'admin');
+}
+
+// init
+document.getElementById('groupsSection').classList.add('show');
+loadGroups();
+</script>
 </body>
 </html>

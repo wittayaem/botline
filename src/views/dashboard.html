@@ -235,6 +235,9 @@
   </div>
   <div class="group-list" id="groupList"></div>
   <div class="sidebar-footer">
+    <div id="userInfo" style="font-size:12px;color:#888;margin-bottom:8px;padding:0 4px"></div>
+    <a id="addUserBtn" href="/register" style="display:none;margin-bottom:8px" class="logout-btn">➕ เพิ่มผู้ใช้</a>
+    <a id="manageUsersBtn" href="#" onclick="showUserManager();return false" style="display:none;margin-bottom:8px" class="logout-btn">👥 จัดการผู้ใช้</a>
     <a href="/logout" class="logout-btn">ออกจากระบบ</a>
   </div>
 </div>
@@ -245,8 +248,8 @@
     <span id="topbarBadge"></span>
   </div>
   <div id="tabsBar" style="display:none" class="tabs-bar">
-    <button class="tab-btn active" onclick="switchTab('settings')">⚙️ ตั้งค่า</button>
-    <button class="tab-btn" onclick="switchTab('messages')">💬 ข้อความล่าสุด <span class="refresh-dot"></span></button>
+    <button class="tab-btn active" id="tabSettings" onclick="switchTab('settings')">⚙️ ตั้งค่า</button>
+    <button class="tab-btn" id="tabMessages" onclick="switchTab('messages')">💬 ข้อความล่าสุด <span class="refresh-dot"></span></button>
     <button class="tab-btn" onclick="switchTab('images')">🖼️ รูปภาพ</button>
   </div>
   <div class="content" id="content">
@@ -264,12 +267,29 @@ let groups = [];
 let currentGroupId = null;
 let currentTab = 'settings';
 let msgRefreshTimer = null;
+let me = { role: 'viewer', username: '' };
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast show ${type}`;
   setTimeout(() => t.className = 'toast', 2500);
+}
+
+async function loadMe() {
+  const res = await fetch('/api/me');
+  me = await res.json();
+  document.getElementById('userInfo').textContent = `${me.username} · ${me.role === 'admin' ? 'Admin' : me.role === 'moderator' ? 'ผู้ดูแล' : 'ผู้ใช้'}`;
+  if (me.role === 'admin') {
+    document.getElementById('addUserBtn').style.display = 'block';
+    document.getElementById('manageUsersBtn').style.display = 'block';
+  }
+  // viewer: ซ่อน settings/messages tab
+  if (me.role === 'viewer') {
+    document.getElementById('tabSettings').style.display = 'none';
+    document.getElementById('tabMessages').style.display = 'none';
+    currentTab = 'images';
+  }
 }
 
 async function loadGroups() {
@@ -380,8 +400,8 @@ async function selectGroup(groupId) {
   document.getElementById('tabsBar').style.display = 'flex';
   renderApproved(g, messages, statMap);
 
-  // restore last tab or default settings
-  switchTab(currentTab);
+  // viewer เปิด images tab อัตโนมัติ
+  switchTab(me.role === 'viewer' ? 'images' : currentTab);
 }
 
 function renderPending(g) {
@@ -722,6 +742,80 @@ function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
 }
 
+async function showUserManager() {
+  currentGroupId = null;
+  document.getElementById('topbarTitle').textContent = 'จัดการผู้ใช้';
+  document.getElementById('topbarBadge').innerHTML = '';
+  document.getElementById('tabsBar').style.display = 'none';
+  document.getElementById('content').innerHTML = '<div style="padding:24px;color:#aaa">กำลังโหลด...</div>';
+  renderSidebar();
+
+  const [usersRes, groupsRes] = await Promise.all([fetch('/api/users'), fetch('/api/groups')]);
+  const users = await usersRes.json();
+  const allGroups = await groupsRes.json();
+  const approvedGroups = allGroups.filter((g: any) => g.status === 'approved');
+
+  const roleLabel: any = { admin: '👑 Admin', moderator: '🛡️ ผู้ดูแล', viewer: '👁️ ผู้ใช้' };
+  const roleColor: any = { admin: '#e8f5e9', moderator: '#e3f2fd', viewer: '#fff8e1' };
+
+  document.getElementById('content').innerHTML = `
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:18px">ผู้ใช้งานทั้งหมด (${users.length} คน)</h2>
+        <a href="/register" style="padding:8px 16px;background:#06c755;color:white;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">➕ เพิ่มผู้ใช้</a>
+      </div>
+      ${users.map((u: any) => `
+        <div style="background:white;border:1px solid #e8eaed;border-radius:12px;padding:16px 20px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <span style="font-weight:600;font-size:15px">${u.username}</span>
+              <span style="background:${roleColor[u.role]};padding:2px 10px;border-radius:12px;font-size:12px;margin-left:8px">${roleLabel[u.role]}</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select onchange="changeRole(${u.id},this.value)" style="border:1px solid #ddd;border-radius:6px;padding:4px 8px;font-size:12px">
+                <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+                <option value="moderator" ${u.role==='moderator'?'selected':''}>ผู้ดูแล</option>
+                <option value="viewer" ${u.role==='viewer'?'selected':''}>ผู้ใช้</option>
+              </select>
+              <button onclick="deleteUser(${u.id},'${u.username}')" style="background:#fee2e2;color:#c62828;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px">ลบ</button>
+            </div>
+          </div>
+          ${u.role !== 'admin' ? `
+          <div style="font-size:12px;color:#888;margin-bottom:6px">ห้องที่เข้าถึงได้:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${approvedGroups.map((g: any) => `
+              <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;background:#f5f7fa;padding:4px 10px;border-radius:8px">
+                <input type="checkbox" data-uid="${u.id}" data-gid="${g.group_id}"
+                  ${u.group_ids.includes(g.group_id) ? 'checked' : ''}
+                  onchange="updateUserGroups(${u.id})">
+                ${g.name}
+              </label>`).join('')}
+          </div>` : '<div style="font-size:12px;color:#06c755">เข้าถึงได้ทุกห้อง</div>'}
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+async function changeRole(userId: number, role: string) {
+  await fetch(`/api/users/${userId}/role`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ role }) });
+  showToast('เปลี่ยนสิทธิ์แล้ว');
+}
+
+async function updateUserGroups(userId: number) {
+  const checkboxes = document.querySelectorAll<HTMLInputElement>(`input[data-uid="${userId}"]`);
+  const group_ids = Array.from(checkboxes).filter(c => c.checked).map(c => c.dataset.gid);
+  await fetch(`/api/users/${userId}/groups`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ group_ids }) });
+  showToast('อัปเดตห้องแล้ว');
+}
+
+async function deleteUser(userId: number, username: string) {
+  if (!confirm(`ลบผู้ใช้ "${username}" ใช่หรือไม่?`)) return;
+  await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+  showToast('ลบผู้ใช้แล้ว');
+  showUserManager();
+}
+
+loadMe();
 loadGroups();
 setInterval(loadGroups, 15000);
 </script>
