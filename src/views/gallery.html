@@ -380,18 +380,34 @@ async function submitPw() {
   var pw = document.getElementById('pw-input').value;
   var errEl = document.getElementById('pw-error');
   var inp = document.getElementById('pw-input');
+  var btn = document.getElementById('pw-btn');
   errEl.textContent = '';
+
   var res = await fetch('/g/' + groupId + '/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: pw }),
-  }).then(function(r){ return r.json(); });
+  }).then(function(r){ return r.json(); }).catch(function(){ return { ok: false }; });
+
   if (res.ok) {
     document.getElementById('pw-screen').style.display = 'none';
     showGallery();
+  } else if (res.banned) {
+    // โดนแบน — ปิดฟอร์ม
+    inp.disabled = true;
+    btn.disabled = true;
+    inp.style.display = 'none';
+    btn.style.display = 'none';
+    errEl.style.color = '#ff3b30';
+    errEl.innerHTML = '🚫 IP ของคุณถูกระงับชั่วคราว<br>เนื่องจากใส่รหัสผิดเกินกำหนด<br><small>กรุณารอ 30 นาทีแล้วลองใหม่</small>';
   } else {
     inp.classList.add('shake');
-    errEl.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+    var left = res.attemptsLeft;
+    if (left !== undefined && left <= 3) {
+      errEl.textContent = '❌ รหัสผ่านไม่ถูกต้อง (เหลืออีก ' + left + ' ครั้ง)';
+    } else {
+      errEl.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+    }
     inp.value = '';
     inp.focus();
     setTimeout(function(){ inp.classList.remove('shake'); }, 400);

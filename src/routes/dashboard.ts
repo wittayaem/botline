@@ -7,6 +7,7 @@ import pool from '../services/db';
 import fs from 'fs';
 import path from 'path';
 import { getOperators, addOperator, removeOperator } from '../services/operators';
+import { getSecurityLog, unbanIp } from '../services/rateLimiter';
 
 const router = Router();
 
@@ -229,6 +230,16 @@ router.post('/api/groups/:groupId/operators', requireLogin, async (req, res) => 
   const { line_user_id, display_name, can_manage } = req.body;
   if (!line_user_id) return res.status(400).json({ error: 'line_user_id required' });
   await addOperator(groupId, line_user_id, display_name || '', !!can_manage);
+  res.json({ ok: true });
+});
+
+// API: Security log + unban (admin only)
+router.get('/api/security/log', requireLogin, requireAdmin, (_req, res) => {
+  res.json(getSecurityLog());
+});
+
+router.delete('/api/security/ban/:ip', requireLogin, requireAdmin, (req, res) => {
+  unbanIp(decodeURIComponent(req.params.ip));
   res.json({ ok: true });
 });
 

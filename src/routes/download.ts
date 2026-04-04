@@ -2,6 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import pool from '../services/db';
+import { getClientIp, isBanned, recordFailure, clearFailures } from '../services/rateLimiter';
 
 const router = Router();
 
@@ -93,13 +94,30 @@ router.get('/g-info/:groupId', async (req, res) => {
 
 router.post('/g/:groupId/auth', async (req, res) => {
   const { groupId } = req.params;
+  const ip = getClientIp(req);
+
+  // ตรวจสอบว่า IP โดนแบนอยู่ไหม
+  if (isBanned(ip)) {
+    return res.status(429).json({ ok: false, banned: true, error: 'IP ของคุณถูกระงับชั่วคราว กรุณารอ 30 นาที' });
+  }
+
   const [rows] = await pool.query<any[]>(
     'SELECT download_password FROM groups_config WHERE group_id = ? LIMIT 1',
     [groupId]
   );
   if (!rows[0]) return res.status(404).json({ ok: false });
   const pw = rows[0].download_password || null;
-  if (pw && req.body.password !== pw) return res.json({ ok: false });
+
+  if (pw && req.body.password !== pw) {
+    const result = recordFailure(ip, groupId);
+    if (result.banned) {
+      return res.status(429).json({ ok: false, banned: true, error: 'ใส่รหัสผิดเกินกำหนด IP ถูกระงับ 30 นาที' });
+    }
+    return res.json({ ok: false, attemptsLeft: result.attemptsLeft });
+  }
+
+  // รหัสถูก — ล้าง failed attempts แล้วบันทึก session
+  clearFailures(ip);
   (req.session as any)[`gallery_${groupId}`] = true;
   req.session.save(() => res.json({ ok: true }));
 });

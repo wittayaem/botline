@@ -53,7 +53,13 @@ export async function handleText(event: MessageEvent, groupId: string) {
     const config = await getGroup(groupId);
 
     // ตรวจว่ากลุ่มนี้เปิดใช้ AI chat ไหม
-    if (!config?.ai_chat) return;
+    if (!config?.ai_chat) {
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: '🤖 ขออภัย กลุ่มนี้ยังไม่เปิดให้ใช้งาน AI\n\nหากต้องการเปิดใช้งาน ติดต่อ Admin\nLINE: wittayaem' }],
+      }).catch(() => {});
+      return;
+    }
 
     const model = config.ai_model || undefined;
     try {
