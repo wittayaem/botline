@@ -32,6 +32,11 @@ export async function handleText(event: MessageEvent, groupId: string) {
   const msg = event.message as TextEventMessage;
   const senderId = event.source.userId || 'unknown';
 
+  // 0. Check operator commands first (don't save command messages)
+  const { handleCommand } = require('./commandHandler');
+  const handled = await handleCommand(msg.text, event.replyToken, groupId, senderId);
+  if (handled) return;
+
   await saveMessage({
     message_id: msg.id,
     group_id: groupId,

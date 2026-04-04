@@ -6,6 +6,7 @@ import { client } from '../services/lineClient';
 import pool from '../services/db';
 import fs from 'fs';
 import path from 'path';
+import { getOperators, addOperator, removeOperator } from '../services/operators';
 
 const router = Router();
 
@@ -211,6 +212,31 @@ router.get('/api/files', requireLogin, (req, res) => {
   const filePath = req.query.path as string;
   if (!filePath || !fs.existsSync(filePath)) return res.status(404).json({ error: 'ไม่พบไฟล์' });
   res.download(filePath);
+});
+
+// API: จัดการผู้ดูแลกลุ่ม (operator ใน LINE)
+router.get('/api/groups/:groupId/operators', requireLogin, async (req, res) => {
+  const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
+  try {
+    res.json(await getOperators(groupId));
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/api/groups/:groupId/operators', requireLogin, async (req, res) => {
+  const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
+  const { line_user_id, display_name, can_manage } = req.body;
+  if (!line_user_id) return res.status(400).json({ error: 'line_user_id required' });
+  await addOperator(groupId, line_user_id, display_name || '', !!can_manage);
+  res.json({ ok: true });
+});
+
+router.delete('/api/groups/:groupId/operators/:lineUserId', requireLogin, async (req, res) => {
+  const { groupId, lineUserId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
+  await removeOperator(groupId, lineUserId);
+  res.json({ ok: true });
 });
 
 export default router;

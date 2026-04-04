@@ -1,10 +1,11 @@
-import { WebhookEvent, MessageEvent, JoinEvent } from '@line/bot-sdk';
+import { WebhookEvent, MessageEvent, JoinEvent, PostbackEvent } from '@line/bot-sdk';
 import { handleText } from './textHandler';
 import { handleImage } from './imageHandler';
 import { handleFile } from './fileHandler';
 import { getGroup, upsertGroup } from '../services/groupConfig';
 import { getWelcomeConfig } from '../services/settings';
 import { client } from '../services/lineClient';
+import { handlePostback, isPendingAddOperator, getPendingAddTrigger, handlePendingAddOperator } from './commandHandler';
 import logger from '../utils/logger';
 
 async function sendWelcome(replyToken: string) {
@@ -36,6 +37,11 @@ export async function handleEvent(event: WebhookEvent) {
     return;
   }
 
+  if (event.type === 'postback') {
+    await handlePostback(event as PostbackEvent);
+    return;
+  }
+
   if (event.type !== 'message') return;
 
   const msgEvent = event as MessageEvent;
@@ -52,6 +58,22 @@ export async function handleEvent(event: WebhookEvent) {
 
     // approved → บันทึกข้อมูลตามปกติ
     if (config.status === 'approved' && config.enabled) {
+      const senderId = msgEvent.source.userId || '';
+
+      // Check pending "เพิ่มผู้ดูแล" mode
+      if (isPendingAddOperator(groupId)) {
+        const trigger = getPendingAddTrigger(groupId);
+        if (senderId !== trigger) {
+          let displayName = senderId;
+          try {
+            const profile = await client.getGroupMemberProfile(groupId, senderId);
+            displayName = profile.displayName;
+          } catch {}
+          await handlePendingAddOperator(groupId, senderId, displayName);
+          return;
+        }
+      }
+
       switch (msgEvent.message.type) {
         case 'text':  if (config.save_text)   await handleText(msgEvent, groupId);  break;
         case 'image': if (config.save_images) await handleImage(msgEvent, groupId); break;

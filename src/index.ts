@@ -20,6 +20,15 @@ async function runMigrations() {
   `).catch(() => {});
 
   const migrations = [
+    `CREATE TABLE IF NOT EXISTS group_operators (
+      id           INT AUTO_INCREMENT PRIMARY KEY,
+      group_id     VARCHAR(100) NOT NULL,
+      line_user_id VARCHAR(100) NOT NULL,
+      display_name VARCHAR(200) NOT NULL DEFAULT '',
+      can_manage   TINYINT(1) NOT NULL DEFAULT 0,
+      added_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_group_user (group_id, line_user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_images     TINYINT(1) NOT NULL DEFAULT 1`,
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_files      TINYINT(1) NOT NULL DEFAULT 1`,
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_enabled  TINYINT(1) NOT NULL DEFAULT 0`,

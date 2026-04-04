@@ -496,6 +496,7 @@ async function selectGroup(groupId) {
 
   document.getElementById('tabsBar').style.display = 'flex';
   renderApproved(g, messages, statMap);
+  loadOperators(groupId);
 
   // viewer เปิด images tab อัตโนมัติ
   switchTab(me.role === 'viewer' ? 'images' : currentTab);
@@ -679,6 +680,42 @@ function renderApproved(g, messages, statMap) {
           <button class="send-btn" onclick="searchImg()">ค้นหา</button>
         </div>
         <div id="searchResults"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" style="justify-content:space-between">
+          👥 ผู้ดูแลกลุ่ม (ตั้งค่าผ่าน LINE)
+          <button onclick="showAddOperatorForm('${g.group_id}')"
+            style="padding:4px 12px;background:#e8f5e9;color:#2e7d32;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">
+            + เพิ่ม
+          </button>
+        </div>
+        <div id="addOperatorForm" style="display:none;padding:12px 20px;border-bottom:1px solid #f5f5f5">
+          <div style="font-size:12px;color:#888;margin-bottom:8px">
+            💡 ดู LINE User ID ได้จากแท็บ 💬 ข้อความล่าสุด (คอลัมน์ sender_id)
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <input id="opLineId" placeholder="LINE User ID (Uxxxxxxxxx)" style="border:1.5px solid #e8eaed;border-radius:8px;padding:7px 12px;font-size:13px;outline:none">
+            <input id="opName" placeholder="ชื่อผู้ดูแล" style="border:1.5px solid #e8eaed;border-radius:8px;padding:7px 12px;font-size:13px;outline:none">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="opCanManage">
+              <span>สามารถเพิ่ม/ลบผู้ดูแลคนอื่นได้ 👑</span>
+            </label>
+            <div style="display:flex;gap:8px">
+              <button onclick="addOperator('${g.group_id}')"
+                style="padding:7px 16px;background:#06c755;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+                บันทึก
+              </button>
+              <button onclick="document.getElementById('addOperatorForm').style.display='none'"
+                style="padding:7px 12px;background:#f5f5f5;color:#666;border:none;border-radius:8px;font-size:13px;cursor:pointer">
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="operatorsList" style="padding:8px 0">
+          <div style="padding:12px 20px;font-size:13px;color:#aaa">กำลังโหลด...</div>
+        </div>
       </div>
     </div>
 
@@ -1111,6 +1148,64 @@ async function loadFiles() {
       <a class="file-dl" href="/dl/${f.message_id}" target="_blank">📥 ดาวน์โหลด</a>
     </div>
   `).join('');
+}
+
+function showAddOperatorForm(groupId) {
+  const f = document.getElementById('addOperatorForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadOperators(groupId) {
+  const el = document.getElementById('operatorsList');
+  if (!el) return;
+  const res = await fetch(`/api/groups/${groupId}/operators`);
+  if (!res.ok) { el.innerHTML = '<div style="padding:12px 20px;font-size:13px;color:#aaa">ไม่สามารถโหลดได้</div>'; return; }
+  const ops = await res.json();
+  if (!ops.length) {
+    el.innerHTML = '<div style="padding:12px 20px;font-size:13px;color:#aaa">ยังไม่มีผู้ดูแล — เพิ่มผ่านปุ่มด้านบน หรือสั่งในกลุ่ม LINE</div>';
+    return;
+  }
+  el.innerHTML = ops.map(o => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid #f5f5f5">
+      <div>
+        <span style="font-size:14px;font-weight:500">${escHtml(o.display_name || o.line_user_id)}</span>
+        ${o.can_manage ? '<span style="font-size:11px;background:#fff8e1;color:#e65100;padding:1px 6px;border-radius:8px;margin-left:6px">👑 จัดการได้</span>' : ''}
+        <div style="font-size:11px;color:#aaa;font-family:monospace">${escHtml(o.line_user_id)}</div>
+      </div>
+      <button onclick="deleteOperator('${o.group_id}','${o.line_user_id}')"
+        style="background:#fee2e2;color:#c62828;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px">
+        ลบ
+      </button>
+    </div>
+  `).join('');
+}
+
+async function addOperator(groupId) {
+  const lineId = document.getElementById('opLineId').value.trim();
+  const name   = document.getElementById('opName').value.trim();
+  const canManage = document.getElementById('opCanManage').checked;
+  if (!lineId) { showToast('กรุณาใส่ LINE User ID', 'error'); return; }
+  const res = await fetch(`/api/groups/${groupId}/operators`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ line_user_id: lineId, display_name: name, can_manage: canManage }),
+  });
+  if (res.ok) {
+    showToast('เพิ่มผู้ดูแลแล้ว');
+    document.getElementById('addOperatorForm').style.display = 'none';
+    document.getElementById('opLineId').value = '';
+    document.getElementById('opName').value = '';
+    document.getElementById('opCanManage').checked = false;
+    await loadOperators(groupId);
+  } else {
+    showToast('เกิดข้อผิดพลาด', 'error');
+  }
+}
+
+async function deleteOperator(groupId, lineUserId) {
+  if (!confirm('ลบผู้ดูแลนี้ออกจากกลุ่ม?')) return;
+  await fetch(`/api/groups/${groupId}/operators/${encodeURIComponent(lineUserId)}`, { method: 'DELETE' });
+  showToast('ลบผู้ดูแลแล้ว');
+  await loadOperators(groupId);
 }
 
 loadMe();
