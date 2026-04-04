@@ -12,6 +12,13 @@ import logger from './utils/logger';
 import pool from './services/db';
 
 async function runMigrations() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      \`key\`  VARCHAR(100) PRIMARY KEY,
+      \`value\` TEXT NOT NULL DEFAULT ''
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `).catch(() => {});
+
   const migrations = [
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_images     TINYINT(1) NOT NULL DEFAULT 1`,
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_files      TINYINT(1) NOT NULL DEFAULT 1`,

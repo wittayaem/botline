@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getAllGroups, getGroup, updateGroup, upsertGroup } from '../services/groupConfig';
+import { getWelcomeConfig, setSetting } from '../services/settings';
 import { getMessagesByGroup, countByGroup, searchImages, filterImages, filterFiles } from '../services/database';
 import { client } from '../services/lineClient';
 import pool from '../services/db';
@@ -36,6 +37,19 @@ async function checkGroupAccess(req: Request, res: Response, groupId: string): P
   }
   return true;
 }
+
+// API: Global welcome message settings (admin only)
+router.get('/api/settings/welcome', requireLogin, requireAdmin, async (_req, res) => {
+  res.json(await getWelcomeConfig());
+});
+
+router.post('/api/settings/welcome', requireLogin, requireAdmin, async (req, res) => {
+  const { welcome_enabled, welcome_text, welcome_image_url } = req.body;
+  await setSetting('welcome_enabled',   welcome_enabled ? '1' : '0');
+  await setSetting('welcome_text',      welcome_text      || '');
+  await setSetting('welcome_image_url', welcome_image_url || '');
+  res.json({ ok: true });
+});
 
 // Favicon
 router.get('/favicon.ico', (_req, res) => res.status(204).end());

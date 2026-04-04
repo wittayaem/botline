@@ -600,32 +600,6 @@ function renderApproved(g, messages, statMap) {
       </div>
 
       <div class="section">
-        <div class="section-header">📢 ข้อความต้อนรับเมื่อบอทเข้ากลุ่ม</div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">เปิดส่งข้อความต้อนรับ</div>
-            <div class="settings-desc">บอทจะส่งข้อความนี้ทุกครั้งที่ถูกเพิ่มเข้ากลุ่ม</div>
-          </div>
-          <label class="toggle"><input type="checkbox" id="welcome_enabled" ${g.welcome_enabled ? 'checked' : ''} onchange="updateFeature('welcome_enabled',this.checked)"><span class="slider"></span></label>
-        </div>
-        <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px">
-          <div class="settings-label">ข้อความ</div>
-          <textarea id="welcome_text" rows="4" style="width:100%;border:1.5px solid #e8eaed;border-radius:8px;padding:8px 12px;font-size:14px;resize:vertical;outline:none;font-family:inherit" placeholder="เช่น สวัสดีครับ! ยินดีต้อนรับ บอทพร้อมบันทึกข้อความ รูปภาพ และไฟล์ในกลุ่มนี้แล้ว">${g.welcome_text || ''}</textarea>
-        </div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">URL รูปภาพ</div>
-            <div class="settings-desc">ส่งรูปพร้อมข้อความ (ไม่บังคับ)</div>
-          </div>
-          <input class="name-input" id="welcome_image_url" value="${g.welcome_image_url || ''}" placeholder="https://...">
-        </div>
-        <div class="settings-row">
-          <div style="font-size:12px;color:#aaa">บันทึกแล้วทดสอบโดยนำบอทออกจากกลุ่มแล้วเพิ่มใหม่</div>
-          <button class="save-btn" onclick="saveWelcome()">บันทึก</button>
-        </div>
-      </div>
-
-      <div class="section">
         <div class="section-header">🤖 ตั้งค่า AI วิเคราะห์รูปภาพ</div>
         <div class="settings-row">
           <div>
@@ -918,13 +892,6 @@ function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
 }
 
-async function saveWelcome() {
-  const text = document.getElementById('welcome_text').value;
-  const image_url = document.getElementById('welcome_image_url').value.trim();
-  await saveGroup({ welcome_text: text, welcome_image_url: image_url });
-  showToast('บันทึกข้อความต้อนรับแล้ว');
-}
-
 async function showWelcomeManager() {
   currentGroupId = null;
   document.getElementById('topbarTitle').textContent = 'ข้อความต้อนรับ';
@@ -932,67 +899,63 @@ async function showWelcomeManager() {
   document.getElementById('tabsBar').style.display = 'none';
   renderSidebar();
 
-  const res = await fetch('/api/groups');
-  const allGroups = await res.json();
-  const approved = allGroups.filter(g => g.status === 'approved');
+  const res = await fetch('/api/settings/welcome');
+  const w = await res.json();
 
   document.getElementById('content').innerHTML = `
-    <div style="padding:24px">
-      <div style="margin-bottom:20px">
-        <h2 style="font-size:18px">📢 ข้อความต้อนรับแต่ละกลุ่ม</h2>
-        <p style="font-size:13px;color:#888;margin-top:4px">ข้อความที่บอทส่งเมื่อถูกเพิ่มเข้ากลุ่ม</p>
+    <div style="padding:24px;max-width:600px">
+      <div style="margin-bottom:24px">
+        <h2 style="font-size:18px">📢 ข้อความต้อนรับ</h2>
+        <p style="font-size:13px;color:#888;margin-top:6px">
+          บอทจะส่งข้อความนี้ทุกครั้งที่มีการส่งข้อความเข้ามา ไม่ว่าจะเป็นกลุ่มหรือ DM<br>
+          <strong>ยกเว้น</strong> กลุ่มที่ได้รับการอนุมัติแล้วจะไม่ได้รับข้อความนี้
+        </p>
       </div>
-      ${approved.length === 0 ? '<p style="color:#aaa;font-size:14px">ยังไม่มีกลุ่มที่อนุมัติ</p>' :
-        approved.map(g => `
-          <div style="background:white;border:1px solid #e8eaed;border-radius:12px;padding:16px 20px;margin-bottom:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <div>
-                <span style="font-weight:600;font-size:15px">${escHtml(g.name)}</span>
-                <span style="font-size:11px;color:#aaa;margin-left:8px">${g.group_id.slice(0,16)}...</span>
-              </div>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                <span style="color:#888">เปิดใช้</span>
-                <label class="toggle" style="margin:0">
-                  <input type="checkbox" data-wgid="${g.group_id}" class="welcome-toggle" ${g.welcome_enabled ? 'checked' : ''}
-                    onchange="toggleWelcome('${g.group_id}',this.checked)">
-                  <span class="slider"></span>
-                </label>
-              </label>
-            </div>
-            <textarea data-wtext="${g.group_id}" rows="3"
-              style="width:100%;border:1.5px solid #e8eaed;border-radius:8px;padding:8px 12px;font-size:13px;resize:vertical;outline:none;font-family:inherit;margin-bottom:8px"
-              placeholder="ข้อความต้อนรับ...">${escHtml(g.welcome_text || '')}</textarea>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input data-wimg="${g.group_id}" type="text" value="${escHtml(g.welcome_image_url || '')}"
-                style="flex:1;border:1.5px solid #e8eaed;border-radius:8px;padding:6px 10px;font-size:13px;outline:none"
-                placeholder="URL รูปภาพ (ไม่บังคับ)">
-              <button onclick="saveWelcomeForGroup('${g.group_id}')"
-                style="padding:6px 16px;background:#06c755;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">บันทึก</button>
-            </div>
+      <div style="background:white;border:1px solid #e8eaed;border-radius:12px;padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-size:14px;font-weight:600">เปิดส่งข้อความต้อนรับ</div>
           </div>
-        `).join('')
-      }
+          <label class="toggle">
+            <input type="checkbox" id="wEnabled" ${w.welcome_enabled ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;color:#555;margin-bottom:6px">ข้อความ</div>
+          <textarea id="wText" rows="5"
+            style="width:100%;border:1.5px solid #e8eaed;border-radius:8px;padding:10px 12px;font-size:14px;resize:vertical;outline:none;font-family:inherit"
+            placeholder="เช่น สวัสดีครับ! กลุ่มนี้ยังไม่ได้รับการอนุมัติ กรุณาติดต่อ Admin">${escHtml(w.welcome_text || '')}</textarea>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:500;color:#555;margin-bottom:6px">URL รูปภาพ <span style="color:#aaa;font-weight:400">(ไม่บังคับ)</span></div>
+          <input id="wImage" type="text" value="${escHtml(w.welcome_image_url || '')}"
+            style="width:100%;border:1.5px solid #e8eaed;border-radius:8px;padding:8px 12px;font-size:14px;outline:none"
+            placeholder="https://example.com/banner.jpg">
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button onclick="saveGlobalWelcome()"
+            style="padding:9px 24px;background:#06c755;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+            💾 บันทึก
+          </button>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;background:#fff8e1;border-radius:8px;font-size:13px;color:#e65100">
+        💡 ทดสอบ: ส่งข้อความจากกลุ่มที่ยังไม่อนุมัติ หรือ DM มาหาบอท
+      </div>
     </div>
   `;
 }
 
-async function toggleWelcome(groupId, enabled) {
-  await fetch(`/api/groups/${groupId}`, {
+async function saveGlobalWelcome() {
+  const enabled = document.getElementById('wEnabled').checked;
+  const text    = document.getElementById('wText').value;
+  const image   = document.getElementById('wImage').value.trim();
+  await fetch('/api/settings/welcome', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ ...groups.find(x => x.group_id === groupId), welcome_enabled: enabled }),
+    body: JSON.stringify({ welcome_enabled: enabled, welcome_text: text, welcome_image_url: image }),
   });
-  showToast(enabled ? 'เปิดข้อความต้อนรับแล้ว' : 'ปิดข้อความต้อนรับแล้ว');
-}
-
-async function saveWelcomeForGroup(groupId) {
-  const text = document.querySelector(`textarea[data-wtext="${groupId}"]`).value;
-  const img  = document.querySelector(`input[data-wimg="${groupId}"]`).value.trim();
-  const g = groups.find(x => x.group_id === groupId) || { group_id: groupId };
-  await fetch(`/api/groups/${groupId}`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ ...g, welcome_text: text, welcome_image_url: img }),
-  });
-  showToast(`บันทึกข้อความต้อนรับแล้ว`);
+  showToast('บันทึกข้อความต้อนรับแล้ว');
 }
 
 async function showUserManager() {

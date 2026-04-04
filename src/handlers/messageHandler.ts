@@ -3,8 +3,20 @@ import { handleText } from './textHandler';
 import { handleImage } from './imageHandler';
 import { handleFile } from './fileHandler';
 import { getGroup, upsertGroup } from '../services/groupConfig';
+import { getWelcomeConfig } from '../services/settings';
 import { client } from '../services/lineClient';
 import logger from '../utils/logger';
+
+async function sendWelcome(replyToken: string) {
+  const w = await getWelcomeConfig();
+  if (!w.welcome_enabled || !w.welcome_text) return;
+  const messages: any[] = [];
+  if (w.welcome_image_url) {
+    messages.push({ type: 'image', originalContentUrl: w.welcome_image_url, previewImageUrl: w.welcome_image_url });
+  }
+  messages.push({ type: 'text', text: w.welcome_text });
+  try { await client.replyMessage({ replyToken, messages }); } catch {}
+}
 
 export async function handleEvent(event: WebhookEvent) {
   // bot ถูกเชิญเข้ากลุ่ม
@@ -20,54 +32,35 @@ export async function handleEvent(event: WebhookEvent) {
       console.log(`\n🔄 [REJOIN] ${groupId} status=${config.status}`);
     }
 
-    // สร้างข้อความต้อนรับ
-    const messages: any[] = [];
-    if (config.welcome_enabled && config.welcome_text) {
-      // ใช้ข้อความจาก config
-      if (config.welcome_image_url) {
-        messages.push({ type: 'image', originalContentUrl: config.welcome_image_url, previewImageUrl: config.welcome_image_url });
-      }
-      messages.push({ type: 'text', text: config.welcome_text });
-    } else {
-      // ข้อความ default
-      messages.push({ type: 'text', text: '👋 สวัสดีครับ! บอทเข้าร่วมกลุ่มแล้ว\nกรุณารออนุมัติจาก Dashboard ก่อนเริ่มใช้งานครับ' });
-    }
-
-    try {
-      await client.replyMessage({ replyToken: joinEvent.replyToken, messages });
-    } catch (e: any) {
-      console.log(`[JOIN] reply failed (ok): ${e.message}`);
-    }
+    await sendWelcome(joinEvent.replyToken);
     return;
   }
 
   if (event.type !== 'message') return;
 
   const msgEvent = event as MessageEvent;
-  if (msgEvent.source.type !== 'group') return;
+  const replyToken = msgEvent.replyToken;
 
-  const groupId = msgEvent.source.groupId;
+  // กลุ่ม: ตรวจสอบ approval
+  if (msgEvent.source.type === 'group') {
+    const groupId = msgEvent.source.groupId;
+    let config = await getGroup(groupId);
+    if (!config) {
+      config = await upsertGroup(groupId);
+      console.log(`\n⏳ [NEW GROUP] ${groupId} — รออนุมัติใน dashboard`);
+    }
 
-  // ดึง config ของกลุ่มนี้
-  let config = await getGroup(groupId);
-  if (!config) {
-    config = await upsertGroup(groupId);
-    console.log(`\n⏳ [NEW GROUP] ${groupId} — รออนุมัติใน dashboard`);
+    // approved → บันทึกข้อมูลตามปกติ
+    if (config.status === 'approved' && config.enabled) {
+      switch (msgEvent.message.type) {
+        case 'text':  if (config.save_text)   await handleText(msgEvent, groupId);  break;
+        case 'image': if (config.save_images) await handleImage(msgEvent, groupId); break;
+        case 'file':  if (config.save_files)  await handleFile(msgEvent, groupId);  break;
+      }
+      return;
+    }
   }
 
-  // pending = รออนุมัติ, rejected = ปฏิเสธ → ไม่ทำอะไร
-  if (config.status !== 'approved') return;
-  if (!config.enabled) return;
-
-  switch (msgEvent.message.type) {
-    case 'text':
-      if (config.save_text) await handleText(msgEvent, groupId);
-      break;
-    case 'image':
-      if (config.save_images) await handleImage(msgEvent, groupId);
-      break;
-    case 'file':
-      if (config.save_files) await handleFile(msgEvent, groupId);
-      break;
-  }
+  // ไม่ approved (กลุ่ม pending/rejected) หรือ DM → ส่ง welcome
+  await sendWelcome(replyToken);
 }
