@@ -36,7 +36,7 @@ async function runMigrations() {
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_text     TEXT`,
     `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_image_url VARCHAR(500) DEFAULT ''`,
     `ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_size BIGINT NULL`,
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS expires_at DATETIME NULL`,
+    `ALTER TABLE groups_config ADD COLUMN expires_at DATETIME NULL`,
   ];
   for (const sql of migrations) {
     await pool.query(sql).catch(() => {});

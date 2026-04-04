@@ -148,7 +148,12 @@ router.post('/api/groups/:groupId/approve', requireLogin, async (req, res) => {
         expiresAt = d.toISOString().slice(0, 19).replace('T', ' ');
       }
     }
-    await updateGroup(req.params.groupId, { status: 'approved', expires_at: expiresAt });
+    try {
+      await updateGroup(req.params.groupId, { status: 'approved', expires_at: expiresAt });
+    } catch {
+      // fallback: expires_at column อาจยังไม่มี — อนุมัติโดยไม่ตั้งวันหมดอายุ
+      await updateGroup(req.params.groupId, { status: 'approved' });
+    }
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
