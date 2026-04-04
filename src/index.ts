@@ -9,6 +9,19 @@ import authRouter from './routes/auth';
 import downloadRouter from './routes/download';
 import { client } from './services/lineClient';
 import logger from './utils/logger';
+import pool from './services/db';
+
+async function runMigrations() {
+  const migrations = [
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_images TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_files  TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_size BIGINT NULL`,
+  ];
+  for (const sql of migrations) {
+    await pool.query(sql).catch(() => {});
+  }
+  logger.info('DB migrations done');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,8 +74,10 @@ app.post('/send', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`\n✅ LINE Bot server running on port ${PORT}`);
-  console.log(`   Webhook  : http://localhost:${PORT}/webhook`);
-  console.log(`   Dashboard: http://localhost:${PORT}/\n`);
+runMigrations().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\n✅ LINE Bot server running on port ${PORT}`);
+    console.log(`   Webhook  : http://localhost:${PORT}/webhook`);
+    console.log(`   Dashboard: http://localhost:${PORT}/\n`);
+  });
 });
