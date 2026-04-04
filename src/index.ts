@@ -30,12 +30,12 @@ async function runMigrations() {
       added_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE KEY uk_group_user (group_id, line_user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_images     TINYINT(1) NOT NULL DEFAULT 1`,
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_files      TINYINT(1) NOT NULL DEFAULT 1`,
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_enabled  TINYINT(1) NOT NULL DEFAULT 0`,
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_text     TEXT`,
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_image_url VARCHAR(500) DEFAULT ''`,
-    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_size BIGINT NULL`,
+    `ALTER TABLE groups_config ADD COLUMN reply_images     TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE groups_config ADD COLUMN reply_files      TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE groups_config ADD COLUMN welcome_enabled  TINYINT(1) NOT NULL DEFAULT 0`,
+    `ALTER TABLE groups_config ADD COLUMN welcome_text     TEXT`,
+    `ALTER TABLE groups_config ADD COLUMN welcome_image_url VARCHAR(500) DEFAULT ''`,
+    `ALTER TABLE messages ADD COLUMN file_size BIGINT NULL`,
     `ALTER TABLE groups_config ADD COLUMN expires_at DATETIME NULL`,
   ];
   for (const sql of migrations) {
