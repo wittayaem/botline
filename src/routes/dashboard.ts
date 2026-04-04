@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getAllGroups, getGroup, updateGroup, upsertGroup } from '../services/groupConfig';
-import { getMessagesByGroup, countByGroup, searchImages } from '../services/database';
+import { getMessagesByGroup, countByGroup, searchImages, filterImages, filterFiles } from '../services/database';
 import { client } from '../services/lineClient';
 import pool from '../services/db';
 import fs from 'fs';
@@ -26,6 +26,15 @@ async function getAccessibleGroupIds(req: Request): Promise<string[] | null> {
     'SELECT group_id FROM user_groups WHERE user_id = ?', [userId]
   );
   return rows.map(r => r.group_id);
+}
+
+async function checkGroupAccess(req: Request, res: Response, groupId: string): Promise<boolean> {
+  const groupIds = await getAccessibleGroupIds(req);
+  if (groupIds !== null && !groupIds.includes(groupId)) {
+    res.status(403).json({ error: 'forbidden' });
+    return false;
+  }
+  return true;
 }
 
 // Favicon
@@ -118,6 +127,7 @@ router.post('/api/groups/:groupId/reject', requireLogin, async (req, res) => {
 // API: ดึงข้อความในกลุ่ม
 router.get('/api/groups/:groupId/messages', requireLogin, async (req, res) => {
   const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
   const limit = Number(req.query.limit) || 50;
   const [messages, stats] = await Promise.all([
     getMessagesByGroup(groupId, limit),
@@ -129,6 +139,7 @@ router.get('/api/groups/:groupId/messages', requireLogin, async (req, res) => {
 // API: ส่งข้อความไปกลุ่ม
 router.post('/api/groups/:groupId/send', requireLogin, async (req, res) => {
   const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'กรุณาระบุ text' });
   try {
@@ -139,31 +150,34 @@ router.post('/api/groups/:groupId/send', requireLogin, async (req, res) => {
   }
 });
 
-// API: ดึงไฟล์ทั้งหมดในกลุ่ม
+// API: ดึงไฟล์ทั้งหมดในกลุ่ม (รองรับ filter)
 router.get('/api/groups/:groupId/files', requireLogin, async (req, res) => {
   const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
+  const q = (req.query.q as string || '').trim() || undefined;
+  const from = (req.query.from as string) || undefined;
+  const to   = (req.query.to   as string) || undefined;
   const limit = Number(req.query.limit) || 200;
-  const [rows] = await (await import('../services/db')).default.query<any[]>(
-    `SELECT * FROM messages WHERE group_id = ? AND type = 'file' ORDER BY created_at DESC LIMIT ?`,
-    [groupId, limit]
-  );
+  const rows = await filterFiles(groupId, q, from, to, limit);
   res.json(rows);
 });
 
-// API: ดึงรูปภาพทั้งหมดในกลุ่ม
+// API: ดึงรูปภาพทั้งหมดในกลุ่ม (รองรับ filter)
 router.get('/api/groups/:groupId/images', requireLogin, async (req, res) => {
   const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
+  const q = (req.query.q as string || '').trim() || undefined;
+  const from = (req.query.from as string) || undefined;
+  const to   = (req.query.to   as string) || undefined;
   const limit = Number(req.query.limit) || 200;
-  const [rows] = await (await import('../services/db')).default.query<any[]>(
-    `SELECT * FROM messages WHERE group_id = ? AND type = 'image' ORDER BY created_at DESC LIMIT ?`,
-    [groupId, limit]
-  );
+  const rows = await filterImages(groupId, q, from, to, limit);
   res.json(rows);
 });
 
 // API: ค้นหารูปด้วย AI caption
 router.get('/api/groups/:groupId/search', requireLogin, async (req, res) => {
   const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
   const keyword = (req.query.q as string || '').trim();
   if (!keyword) return res.status(400).json({ error: 'กรุณาระบุคำค้นหา' });
   const images = await searchImages(groupId, keyword);

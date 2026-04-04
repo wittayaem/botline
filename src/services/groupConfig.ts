@@ -15,8 +15,11 @@ export interface GroupConfig {
   ai_model: string;      // '' = ใช้ค่า default จาก .env
   ai_chat: boolean;      // เปิด/ปิด ให้ AI ตอบคำถาม (ai [คำถาม])
   ai_equipment: boolean; // เปิด/ปิด ดึงข้อมูลจากระบบแจ้งซ่อม it.pruksamoney.co.th
-  reply_images: boolean; // ส่ง flex message กลับเมื่อบันทึกรูป
-  reply_files: boolean;  // ส่ง flex message กลับเมื่อบันทึกไฟล์
+  reply_images: boolean;     // ส่ง flex message กลับเมื่อบันทึกรูป
+  reply_files: boolean;      // ส่ง flex message กลับเมื่อบันทึกไฟล์
+  welcome_enabled: boolean;  // เปิด/ปิดข้อความต้อนรับ
+  welcome_text: string;      // ข้อความต้อนรับ
+  welcome_image_url: string; // URL รูปต้อนรับ (ถ้ามี)
   added_at?: string;
 }
 
@@ -36,6 +39,9 @@ function toConfig(r: any): GroupConfig {
     ai_equipment: r.ai_equipment === undefined ? true : !!r.ai_equipment,
     reply_images: r.reply_images === undefined ? true : !!r.reply_images,
     reply_files: r.reply_files === undefined ? true : !!r.reply_files,
+    welcome_enabled: !!r.welcome_enabled,
+    welcome_text: r.welcome_text || '',
+    welcome_image_url: r.welcome_image_url || '',
     added_at: r.added_at,
   };
 }
@@ -59,7 +65,7 @@ export async function upsertGroup(groupId: string, name?: string): Promise<Group
 }
 
 export async function updateGroup(groupId: string, data: Partial<GroupConfig>) {
-  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files'];
+  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files', 'welcome_enabled', 'welcome_text', 'welcome_image_url'];
   const keys = Object.keys(data).filter(k => allowed.includes(k));
   if (!keys.length) return;
   const fields = keys.map(k => `${k} = ?`).join(', ');

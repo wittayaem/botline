@@ -69,6 +69,33 @@
     .admin-btn.green:hover { background: #c8e6c9; }
     .admin-btn.blue { background: #e3f2fd; color: #1565c0; }
     .admin-btn.blue:hover { background: #bbdefb; }
+    .admin-btn.orange { background: #fff8e1; color: #e65100; }
+    .admin-btn.orange:hover { background: #ffecb3; }
+
+    .filter-bar {
+      padding: 12px 20px; background: white; border-bottom: 1px solid #e8eaed;
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .filter-input {
+      flex: 1; min-width: 150px; border: 1.5px solid #e8eaed; border-radius: 8px;
+      padding: 7px 12px; font-size: 13px; outline: none;
+    }
+    .filter-input:focus { border-color: #06c755; }
+    .filter-date {
+      border: 1.5px solid #e8eaed; border-radius: 8px;
+      padding: 7px 10px; font-size: 13px; outline: none; color: #444;
+    }
+    .filter-date:focus { border-color: #06c755; }
+    .filter-btn {
+      padding: 7px 16px; background: #06c755; color: white; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .filter-btn:hover { background: #05b04a; }
+    .filter-clear {
+      padding: 7px 12px; background: #f5f5f5; color: #666; border: none;
+      border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .filter-clear:hover { background: #eee; }
     .logout-btn {
       display: block; width: 100%; padding: 8px; text-align: center;
       background: #f5f5f5; border: none; border-radius: 8px;
@@ -286,9 +313,10 @@
         <div class="role-tag" id="userRole">-</div>
       </div>
     </div>
-    <div class="admin-actions" id="adminActions">
+    <div class="admin-actions" id="adminActions" style="flex-wrap:wrap">
       <a href="/register" class="admin-btn green">➕ เพิ่มผู้ใช้</a>
       <a href="#" onclick="showUserManager();return false" class="admin-btn blue">👥 จัดการผู้ใช้</a>
+      <a href="#" onclick="showWelcomeManager();return false" class="admin-btn orange" style="flex:0 0 100%">📢 ข้อความต้อนรับ</a>
     </div>
     <a href="/logout" class="logout-btn">ออกจากระบบ</a>
   </div>
@@ -572,6 +600,32 @@ function renderApproved(g, messages, statMap) {
       </div>
 
       <div class="section">
+        <div class="section-header">📢 ข้อความต้อนรับเมื่อบอทเข้ากลุ่ม</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">เปิดส่งข้อความต้อนรับ</div>
+            <div class="settings-desc">บอทจะส่งข้อความนี้ทุกครั้งที่ถูกเพิ่มเข้ากลุ่ม</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="welcome_enabled" ${g.welcome_enabled ? 'checked' : ''} onchange="updateFeature('welcome_enabled',this.checked)"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px">
+          <div class="settings-label">ข้อความ</div>
+          <textarea id="welcome_text" rows="4" style="width:100%;border:1.5px solid #e8eaed;border-radius:8px;padding:8px 12px;font-size:14px;resize:vertical;outline:none;font-family:inherit" placeholder="เช่น สวัสดีครับ! ยินดีต้อนรับ บอทพร้อมบันทึกข้อความ รูปภาพ และไฟล์ในกลุ่มนี้แล้ว">${g.welcome_text || ''}</textarea>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">URL รูปภาพ</div>
+            <div class="settings-desc">ส่งรูปพร้อมข้อความ (ไม่บังคับ)</div>
+          </div>
+          <input class="name-input" id="welcome_image_url" value="${g.welcome_image_url || ''}" placeholder="https://...">
+        </div>
+        <div class="settings-row">
+          <div style="font-size:12px;color:#aaa">บันทึกแล้วทดสอบโดยนำบอทออกจากกลุ่มแล้วเพิ่มใหม่</div>
+          <button class="save-btn" onclick="saveWelcome()">บันทึก</button>
+        </div>
+      </div>
+
+      <div class="section">
         <div class="section-header">🤖 ตั้งค่า AI วิเคราะห์รูปภาพ</div>
         <div class="settings-row">
           <div>
@@ -654,12 +708,28 @@ function renderApproved(g, messages, statMap) {
     </div>
 
     <div id="tab-images" class="tab-panel">
+      <div class="filter-bar">
+        <input class="filter-input" id="imgSearchInput" placeholder="ค้นหาจากคำอธิบายรูป (AI caption)...">
+        <input type="date" class="filter-date" id="imgFromDate" title="วันที่เริ่มต้น">
+        <span style="color:#aaa;font-size:13px">ถึง</span>
+        <input type="date" class="filter-date" id="imgToDate" title="วันที่สิ้นสุด">
+        <button class="filter-btn" onclick="loadImages()">🔍 ค้นหา</button>
+        <button class="filter-clear" onclick="clearImgFilter()">ล้าง</button>
+      </div>
       <div id="imgGrid" class="img-grid">
         <div style="text-align:center;color:#aaa;padding:40px;grid-column:1/-1">กำลังโหลด...</div>
       </div>
     </div>
 
     <div id="tab-files" class="tab-panel">
+      <div class="filter-bar">
+        <input class="filter-input" id="fileSearchInput" placeholder="ค้นหาจากชื่อไฟล์...">
+        <input type="date" class="filter-date" id="fileFromDate" title="วันที่เริ่มต้น">
+        <span style="color:#aaa;font-size:13px">ถึง</span>
+        <input type="date" class="filter-date" id="fileToDate" title="วันที่สิ้นสุด">
+        <button class="filter-btn" onclick="loadFiles()">🔍 ค้นหา</button>
+        <button class="filter-clear" onclick="clearFileFilter()">ล้าง</button>
+      </div>
       <div id="fileList" class="file-list">
         <div style="text-align:center;color:#aaa;padding:40px">กำลังโหลด...</div>
       </div>
@@ -794,11 +864,32 @@ async function searchImg() {
   `;
 }
 
+function clearImgFilter() {
+  document.getElementById('imgSearchInput').value = '';
+  document.getElementById('imgFromDate').value = '';
+  document.getElementById('imgToDate').value = '';
+  loadImages();
+}
+
+function clearFileFilter() {
+  document.getElementById('fileSearchInput').value = '';
+  document.getElementById('fileFromDate').value = '';
+  document.getElementById('fileToDate').value = '';
+  loadFiles();
+}
+
 async function loadImages() {
   const grid = document.getElementById('imgGrid');
   if (!grid || !currentGroupId) return;
   grid.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;grid-column:1/-1">กำลังโหลด...</div>';
-  const res = await fetch(`/api/groups/${currentGroupId}/images`);
+  const q    = document.getElementById('imgSearchInput')?.value.trim() || '';
+  const from = document.getElementById('imgFromDate')?.value || '';
+  const to   = document.getElementById('imgToDate')?.value || '';
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const res = await fetch(`/api/groups/${currentGroupId}/images?${params}`);
   const images = await res.json();
   if (!images.length) {
     grid.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px;grid-column:1/-1">ยังไม่มีรูปภาพ</div>';
@@ -825,6 +916,83 @@ function openLightbox(index) {
 
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
+}
+
+async function saveWelcome() {
+  const text = document.getElementById('welcome_text').value;
+  const image_url = document.getElementById('welcome_image_url').value.trim();
+  await saveGroup({ welcome_text: text, welcome_image_url: image_url });
+  showToast('บันทึกข้อความต้อนรับแล้ว');
+}
+
+async function showWelcomeManager() {
+  currentGroupId = null;
+  document.getElementById('topbarTitle').textContent = 'ข้อความต้อนรับ';
+  document.getElementById('topbarBadge').innerHTML = '';
+  document.getElementById('tabsBar').style.display = 'none';
+  renderSidebar();
+
+  const res = await fetch('/api/groups');
+  const allGroups = await res.json();
+  const approved = allGroups.filter(g => g.status === 'approved');
+
+  document.getElementById('content').innerHTML = `
+    <div style="padding:24px">
+      <div style="margin-bottom:20px">
+        <h2 style="font-size:18px">📢 ข้อความต้อนรับแต่ละกลุ่ม</h2>
+        <p style="font-size:13px;color:#888;margin-top:4px">ข้อความที่บอทส่งเมื่อถูกเพิ่มเข้ากลุ่ม</p>
+      </div>
+      ${approved.length === 0 ? '<p style="color:#aaa;font-size:14px">ยังไม่มีกลุ่มที่อนุมัติ</p>' :
+        approved.map(g => `
+          <div style="background:white;border:1px solid #e8eaed;border-radius:12px;padding:16px 20px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <span style="font-weight:600;font-size:15px">${escHtml(g.name)}</span>
+                <span style="font-size:11px;color:#aaa;margin-left:8px">${g.group_id.slice(0,16)}...</span>
+              </div>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                <span style="color:#888">เปิดใช้</span>
+                <label class="toggle" style="margin:0">
+                  <input type="checkbox" data-wgid="${g.group_id}" class="welcome-toggle" ${g.welcome_enabled ? 'checked' : ''}
+                    onchange="toggleWelcome('${g.group_id}',this.checked)">
+                  <span class="slider"></span>
+                </label>
+              </label>
+            </div>
+            <textarea data-wtext="${g.group_id}" rows="3"
+              style="width:100%;border:1.5px solid #e8eaed;border-radius:8px;padding:8px 12px;font-size:13px;resize:vertical;outline:none;font-family:inherit;margin-bottom:8px"
+              placeholder="ข้อความต้อนรับ...">${escHtml(g.welcome_text || '')}</textarea>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input data-wimg="${g.group_id}" type="text" value="${escHtml(g.welcome_image_url || '')}"
+                style="flex:1;border:1.5px solid #e8eaed;border-radius:8px;padding:6px 10px;font-size:13px;outline:none"
+                placeholder="URL รูปภาพ (ไม่บังคับ)">
+              <button onclick="saveWelcomeForGroup('${g.group_id}')"
+                style="padding:6px 16px;background:#06c755;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">บันทึก</button>
+            </div>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+}
+
+async function toggleWelcome(groupId, enabled) {
+  await fetch(`/api/groups/${groupId}`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ...groups.find(x => x.group_id === groupId), welcome_enabled: enabled }),
+  });
+  showToast(enabled ? 'เปิดข้อความต้อนรับแล้ว' : 'ปิดข้อความต้อนรับแล้ว');
+}
+
+async function saveWelcomeForGroup(groupId) {
+  const text = document.querySelector(`textarea[data-wtext="${groupId}"]`).value;
+  const img  = document.querySelector(`input[data-wimg="${groupId}"]`).value.trim();
+  const g = groups.find(x => x.group_id === groupId) || { group_id: groupId };
+  await fetch(`/api/groups/${groupId}`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ...g, welcome_text: text, welcome_image_url: img }),
+  });
+  showToast(`บันทึกข้อความต้อนรับแล้ว`);
 }
 
 async function showUserManager() {
@@ -925,7 +1093,14 @@ async function loadFiles() {
   const list = document.getElementById('fileList');
   if (!list || !currentGroupId) return;
   list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px">กำลังโหลด...</div>';
-  const res = await fetch(`/api/groups/${currentGroupId}/files`);
+  const q    = document.getElementById('fileSearchInput')?.value.trim() || '';
+  const from = document.getElementById('fileFromDate')?.value || '';
+  const to   = document.getElementById('fileToDate')?.value || '';
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const res = await fetch(`/api/groups/${currentGroupId}/files?${params}`);
   const files = await res.json();
   if (!files.length) {
     list.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px">ยังไม่มีไฟล์</div>';

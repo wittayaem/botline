@@ -13,8 +13,11 @@ import pool from './services/db';
 
 async function runMigrations() {
   const migrations = [
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_images TINYINT(1) NOT NULL DEFAULT 1`,
-    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_files  TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_images     TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_files      TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_enabled  TINYINT(1) NOT NULL DEFAULT 0`,
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_text     TEXT`,
+    `ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS welcome_image_url VARCHAR(500) DEFAULT ''`,
     `ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_size BIGINT NULL`,
   ];
   for (const sql of migrations) {

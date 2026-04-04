@@ -19,12 +19,22 @@ export async function handleEvent(event: WebhookEvent) {
     } else {
       console.log(`\n🔄 [REJOIN] ${groupId} status=${config.status}`);
     }
-    // ส่งข้อความต้อนรับ (ถ้า replyToken หมดอายุก็ข้ามได้)
+
+    // สร้างข้อความต้อนรับ
+    const messages: any[] = [];
+    if (config.welcome_enabled && config.welcome_text) {
+      // ใช้ข้อความจาก config
+      if (config.welcome_image_url) {
+        messages.push({ type: 'image', originalContentUrl: config.welcome_image_url, previewImageUrl: config.welcome_image_url });
+      }
+      messages.push({ type: 'text', text: config.welcome_text });
+    } else {
+      // ข้อความ default
+      messages.push({ type: 'text', text: '👋 สวัสดีครับ! บอทเข้าร่วมกลุ่มแล้ว\nกรุณารออนุมัติจาก Dashboard ก่อนเริ่มใช้งานครับ' });
+    }
+
     try {
-      await client.replyMessage({
-        replyToken: joinEvent.replyToken,
-        messages: [{ type: 'text', text: '👋 สวัสดีครับ! บอทเข้าร่วมกลุ่มแล้ว\nกรุณารออนุมัติจาก Dashboard ก่อนเริ่มใช้งานครับ' }],
-      });
+      await client.replyMessage({ replyToken: joinEvent.replyToken, messages });
     } catch (e: any) {
       console.log(`[JOIN] reply failed (ok): ${e.message}`);
     }
