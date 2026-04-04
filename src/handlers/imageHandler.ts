@@ -28,10 +28,11 @@ export async function handleImage(event: MessageEvent, groupId: string) {
 
   logger.info({ type: 'image', senderId, filePath }, 'Image saved');
 
+  const config = await getGroup(groupId);
+
   // ส่ง link กลับใน LINE
   const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');
-  if (baseUrl) {
-    const config = await getGroup(groupId);
+  if (baseUrl && config?.reply_images !== false) {
     const hasPassword = !!config?.download_password;
     const dlUrl = `${baseUrl}/dl/${msg.id}`;
     try {
@@ -63,7 +64,6 @@ export async function handleImage(event: MessageEvent, groupId: string) {
   }
 
   // วิเคราะห์รูปด้วย AI
-  const config = await getGroup(groupId);
   if (!config || !config.ai_caption) return;
 
   const model = config.ai_model || undefined;

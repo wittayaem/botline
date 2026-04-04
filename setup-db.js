@@ -29,11 +29,18 @@ async function main() {
       ai_caption   TINYINT(1) NOT NULL DEFAULT 1,
       ai_model     VARCHAR(150) NOT NULL DEFAULT '',
       ai_chat      TINYINT(1) NOT NULL DEFAULT 1,
-      ai_equipment TINYINT(1) NOT NULL DEFAULT 1,
-      added_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+      ai_equipment   TINYINT(1) NOT NULL DEFAULT 1,
+      reply_images   TINYINT(1) NOT NULL DEFAULT 1,
+      reply_files    TINYINT(1) NOT NULL DEFAULT 1,
+      added_at       DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
   console.log('✅ ตาราง groups_config');
+
+  // เพิ่ม column ใหม่ถ้ายังไม่มี (สำหรับ DB เดิม)
+  await pool.query(`ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_images TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
+  await pool.query(`ALTER TABLE groups_config ADD COLUMN IF NOT EXISTS reply_files  TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
+  console.log('✅ migration: reply_images, reply_files');
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (

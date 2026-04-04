@@ -32,8 +32,8 @@ export async function handleFile(event: MessageEvent, groupId: string) {
 
   // ส่ง link กลับใน LINE
   const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');
-  if (baseUrl) {
-    const config = await getGroup(groupId);
+  const config = await getGroup(groupId);
+  if (baseUrl && config?.reply_files !== false) {
     const hasPassword = !!config?.download_password;
     const dlUrl = `${baseUrl}/dl/${msg.id}`;
     try {

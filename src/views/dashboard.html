@@ -531,8 +531,28 @@ function renderApproved(g, messages, statMap) {
           <label class="toggle"><input type="checkbox" id="save_images" ${g.save_images ? 'checked' : ''} onchange="updateFeature('save_images',this.checked)"><span class="slider"></span></label>
         </div>
         <div class="settings-row">
-          <div><div class="settings-label">บันทึกไฟล์</div></div>
+          <div>
+            <div class="settings-label">บันทึกไฟล์</div>
+          </div>
           <label class="toggle"><input type="checkbox" id="save_files" ${g.save_files ? 'checked' : ''} onchange="updateFeature('save_files',this.checked)"><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">💬 การแจ้งเตือนกลับใน LINE</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">ส่งลิงก์เมื่อบันทึกรูปภาพ</div>
+            <div class="settings-desc">บอทจะส่งการ์ดพร้อมปุ่มดาวน์โหลดกลับในกลุ่มทุกครั้งที่มีคนส่งรูป</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="reply_images" ${g.reply_images !== false ? 'checked' : ''} onchange="updateFeature('reply_images',this.checked)"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">ส่งลิงก์เมื่อบันทึกไฟล์</div>
+            <div class="settings-desc">บอทจะส่งการ์ดพร้อมปุ่มดาวน์โหลดกลับในกลุ่มทุกครั้งที่มีคนส่งไฟล์</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="reply_files" ${g.reply_files !== false ? 'checked' : ''} onchange="updateFeature('reply_files',this.checked)"><span class="slider"></span></label>
         </div>
         <div class="settings-row">
           <div>
