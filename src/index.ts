@@ -15,7 +15,7 @@ async function runMigrations() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS settings (
       \`key\`  VARCHAR(100) PRIMARY KEY,
-      \`value\` TEXT NOT NULL DEFAULT ''
+      \`value\` TEXT
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `).catch(() => {});
 

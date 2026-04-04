@@ -40,15 +40,23 @@ async function checkGroupAccess(req: Request, res: Response, groupId: string): P
 
 // API: Global welcome message settings (admin only)
 router.get('/api/settings/welcome', requireLogin, requireAdmin, async (_req, res) => {
-  res.json(await getWelcomeConfig());
+  try {
+    res.json(await getWelcomeConfig());
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/api/settings/welcome', requireLogin, requireAdmin, async (req, res) => {
-  const { welcome_enabled, welcome_text, welcome_image_url } = req.body;
-  await setSetting('welcome_enabled',   welcome_enabled ? '1' : '0');
-  await setSetting('welcome_text',      welcome_text      || '');
-  await setSetting('welcome_image_url', welcome_image_url || '');
-  res.json({ ok: true });
+  try {
+    const { welcome_enabled, welcome_text, welcome_image_url } = req.body;
+    await setSetting('welcome_enabled',   welcome_enabled ? '1' : '0');
+    await setSetting('welcome_text',      welcome_text      || '');
+    await setSetting('welcome_image_url', welcome_image_url || '');
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Favicon

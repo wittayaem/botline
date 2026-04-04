@@ -13,14 +13,16 @@ export async function setSetting(key: string, value: string) {
 }
 
 export async function getWelcomeConfig() {
-  const [rows] = await pool.query<any[]>(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('welcome_enabled','welcome_text','welcome_image_url')"
-  );
   const cfg = { welcome_enabled: false, welcome_text: '', welcome_image_url: '' };
-  for (const r of rows) {
-    if (r.key === 'welcome_enabled')   cfg.welcome_enabled   = r.value === '1';
-    if (r.key === 'welcome_text')      cfg.welcome_text      = r.value;
-    if (r.key === 'welcome_image_url') cfg.welcome_image_url = r.value;
-  }
+  try {
+    const [rows] = await pool.query<any[]>(
+      "SELECT `key`, `value` FROM settings WHERE `key` IN ('welcome_enabled','welcome_text','welcome_image_url')"
+    );
+    for (const r of rows) {
+      if (r.key === 'welcome_enabled')   cfg.welcome_enabled   = r.value === '1';
+      if (r.key === 'welcome_text')      cfg.welcome_text      = r.value || '';
+      if (r.key === 'welcome_image_url') cfg.welcome_image_url = r.value || '';
+    }
+  } catch { /* ตาราง settings ยังไม่ถูกสร้าง */ }
   return cfg;
 }
