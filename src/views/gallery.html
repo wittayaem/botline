@@ -357,7 +357,13 @@ async function init() {
   document.getElementById('g-name').textContent = info.name;
   document.title = '📂 ' + info.name;
 
-  if (info.needPassword && !info.authed) {
+  if (info.banned) {
+    document.getElementById('pw-screen').style.display = 'flex';
+    var card = document.querySelector('.pw-card');
+    card.innerHTML = '<div class="pw-icon">🚫</div>'
+      + '<div class="pw-title" style="color:#e53e3e">IP ถูกระงับชั่วคราว</div>'
+      + '<div class="pw-sub">คุณใส่รหัสผ่านผิดเกินจำนวนที่กำหนด<br>กรุณารอ <strong>30 นาที</strong> แล้วลองใหม่<br><span style="font-size:11px;color:#bbb;margin-top:8px;display:block">หากคิดว่าเกิดความผิดพลาด ติดต่อ Admin</span></div>';
+  } else if (info.needPassword && !info.authed) {
     document.getElementById('pw-screen').style.display = 'flex';
   } else {
     showGallery();

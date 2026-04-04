@@ -70,6 +70,8 @@ router.get('/dl-file/:messageId', async (req, res) => {
 
 function isGalleryAuthed(req: any, groupId: string, password: string | null): boolean {
   if (!password) return true;
+  // ถ้า IP โดนแบน → ไม่อนุญาตแม้จะมี session
+  if (isBanned(getClientIp(req))) return false;
   return !!(req.session as any)[`gallery_${groupId}`];
 }
 
@@ -79,16 +81,19 @@ router.get('/g/:groupId', (_req, res) => {
 
 router.get('/g-info/:groupId', async (req, res) => {
   const { groupId } = req.params;
+  const ip = getClientIp(req);
   const [rows] = await pool.query<any[]>(
     'SELECT name, download_password FROM groups_config WHERE group_id = ? LIMIT 1',
     [groupId]
   );
   if (!rows[0]) return res.status(404).json({ error: 'not found' });
   const pw = rows[0].download_password || null;
+  const banned = isBanned(ip);
   res.json({
     name: rows[0].name || 'กลุ่ม',
     needPassword: !!pw,
-    authed: isGalleryAuthed(req, groupId, pw),
+    authed: isGalleryAuthed(req, groupId, pw), // จะ return false ถ้าโดนแบน
+    banned,
   });
 });
 
