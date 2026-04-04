@@ -7,6 +7,40 @@ import logger from '../utils/logger';
 // pending "เพิ่มผู้ดูแล" mode: groupId → { expiresAt, triggeredBy }
 const pendingAdd = new Map<string, { expiresAt: number; triggeredBy: string }>();
 
+// pending "ตั้งรหัสผ่านใหม่" mode: groupId → { expiresAt, triggeredBy }
+const pendingPassword = new Map<string, { expiresAt: number; triggeredBy: string }>();
+
+export function isPendingPassword(groupId: string): boolean {
+  const p = pendingPassword.get(groupId);
+  if (!p) return false;
+  if (Date.now() > p.expiresAt) { pendingPassword.delete(groupId); return false; }
+  return true;
+}
+
+export function getPendingPasswordTrigger(groupId: string): string {
+  return pendingPassword.get(groupId)?.triggeredBy ?? '';
+}
+
+export async function handlePendingPassword(groupId: string, newPassword: string, replyToken: string) {
+  pendingPassword.delete(groupId);
+  if (newPassword === 'ยกเลิก') {
+    try {
+      await client.replyMessage({ replyToken, messages: [{ type: 'text', text: '↩️ ยกเลิกการตั้งรหัสผ่านแล้ว' }] });
+    } catch {}
+    return;
+  }
+  await updateGroup(groupId, { download_password: newPassword } as any);
+  const masked = newPassword.length <= 2
+    ? '*'.repeat(newPassword.length)
+    : newPassword[0] + '*'.repeat(newPassword.length - 2) + newPassword.slice(-1);
+  try {
+    await client.replyMessage({ replyToken, messages: [{
+      type: 'text',
+      text: `🔒 ตั้งรหัสดาวน์โหลดใหม่แล้ว\nรหัส: ${masked}`,
+    }]});
+  } catch {}
+}
+
 export function isPendingAddOperator(groupId: string): boolean {
   const p = pendingAdd.get(groupId);
   if (!p) return false;
@@ -148,7 +182,7 @@ export async function handleCommand(
     pendingAdd.set(groupId, { expiresAt: Date.now() + 60_000, triggeredBy: senderId });
     await client.replyMessage({ replyToken, messages: [{
       type: 'text',
-      text: '⏳ รอ 60 วินาที\nให้คนที่ต้องการเพิ่มสิทธิ์ส่งข้อความมาได้เลยครับ',
+      text: '⏳ ให้ผู้ที่ต้องการเป็นผู้ดูแล พิมพ์อะไรมาก็ได้ ภายใน 60 วินี้',
     }]});
     return true;
   }
@@ -280,9 +314,31 @@ export async function handlePostback(event: PostbackEvent) {
   const op = await isOperator(groupId, senderId);
   if (!op) return;
 
-  // format: "toggle|groupId|field|newValue"
   const parts = event.postback.data.split('|');
-  if (parts[0] !== 'toggle' || parts.length < 4) return;
+  const action = parts[0];
+
+  // "setpassword|groupId"
+  if (action === 'setpassword' && parts[1] === groupId) {
+    pendingPassword.set(groupId, { expiresAt: Date.now() + 60_000, triggeredBy: senderId });
+    try {
+      await client.replyMessage({ replyToken: event.replyToken, messages: [{
+        type: 'text',
+        text: '🔑 ตั้งรหัสผ่านใหม่\nพิมพ์รหัสที่ต้องการมาได้เลย ภายใน 60 วินี้\n(พิมพ์ ยกเลิก เพื่อยกเลิก)',
+      }]});
+    } catch {}
+    return;
+  }
+
+  // "showcmds|groupId"
+  if (action === 'showcmds' && parts[1] === groupId) {
+    try {
+      await client.replyMessage({ replyToken: event.replyToken, messages: [buildTextCommandsCard()] });
+    } catch {}
+    return;
+  }
+
+  // "toggle|groupId|field|newValue"
+  if (action !== 'toggle' || parts.length < 4) return;
   const [, pgId, field, newValueStr] = parts;
   if (pgId !== groupId) return;
 
@@ -365,6 +421,53 @@ export function buildGuideMessage(groupId: string, baseUrl: string, config: any)
   };
 }
 
+export function buildTextCommandsCard(): any {
+  return {
+    type: 'flex',
+    altText: '⌨️ คำสั่งแบบพิมพ์เอง',
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box', layout: 'vertical',
+        backgroundColor: '#37474f', paddingAll: '14px',
+        contents: [
+          { type: 'text', text: '⌨️ คำสั่งแบบพิมพ์เอง', color: '#ffffff', size: 'md', weight: 'bold' },
+          { type: 'text', text: 'สำหรับผู้ดูแลกลุ่มเท่านั้น', color: '#b0bec5', size: 'xs', margin: 'xs' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none',
+        contents: [
+          { type: 'text', text: '⚙️ ตั้งค่า', weight: 'bold', size: 'sm', color: '#37474f' },
+          {
+            type: 'text', size: 'xs', color: '#555555', wrap: true, margin: 'sm',
+            text: '//  →  เปิดหน้าตั้งค่า\nตั้งค่า บอท เปิด / ปิด\nตั้งค่า รูป เปิด / ปิด\nตั้งค่า ไฟล์ เปิด / ปิด\nตั้งค่า ข้อความ เปิด / ปิด\nตั้งค่า ลิงก์รูป เปิด / ปิด\nตั้งค่า ลิงก์ไฟล์ เปิด / ปิด',
+          },
+          { type: 'separator', margin: 'md' },
+          { type: 'text', text: '🔒 รหัสดาวน์โหลด', weight: 'bold', size: 'sm', color: '#37474f', margin: 'md' },
+          {
+            type: 'text', size: 'xs', color: '#555555', wrap: true, margin: 'sm',
+            text: 'ตั้งค่า รหัส abc123  →  ตั้งรหัสใหม่\nตั้งค่า รหัส ยกเลิก  →  ลบรหัสออก',
+          },
+          { type: 'separator', margin: 'md' },
+          { type: 'text', text: '👥 จัดการผู้ดูแล', weight: 'bold', size: 'sm', color: '#37474f', margin: 'md' },
+          {
+            type: 'text', size: 'xs', color: '#555555', wrap: true, margin: 'sm',
+            text: 'เพิ่มผู้ดูแล\nรายชื่อผู้ดูแล\nลบผู้ดูแล [ลำดับ หรือ ชื่อ]',
+          },
+          { type: 'separator', margin: 'md' },
+          { type: 'text', text: '🌐 ทุกคนใช้ได้', weight: 'bold', size: 'sm', color: '#37474f', margin: 'md' },
+          {
+            type: 'text', size: 'xs', color: '#555555', wrap: true, margin: 'sm',
+            text: 'ดูไฟล์ / ดูรูป / ดาวน์โหลด  →  ลิ้งดูไฟล์\nคู่มือ  →  คู่มือคำสั่งทั้งหมด',
+          },
+        ],
+      },
+    },
+  };
+}
+
 export function buildSettingsMessage(config: any): any {
   const gid = config.group_id;
   const hasPassword = !!config.download_password;
@@ -374,94 +477,125 @@ export function buildSettingsMessage(config: any): any {
       : config.download_password[0] + '*'.repeat(config.download_password.length - 2) + config.download_password.slice(-1)
     : '';
 
-  function row(label: string, field: string, current: boolean) {
+  const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');
+  const galleryUrl = `${baseUrl}/g/${gid}`;
+
+  function toggleRow(label: string, field: string, current: boolean) {
     return {
-      type: 'box',
-      layout: 'horizontal',
-      alignItems: 'center',
-      paddingTop: '6px',
-      paddingBottom: '6px',
+      type: 'box', layout: 'horizontal', alignItems: 'center',
+      paddingTop: '6px', paddingBottom: '6px',
       contents: [
         { type: 'text', text: label, flex: 3, size: 'sm' },
         {
-          type: 'button',
+          type: 'button', flex: 2, height: 'sm',
+          style: current ? 'primary' : 'secondary',
+          color: current ? '#06c755' : '#aaaaaa',
           action: {
             type: 'postback',
             label: current ? '✅ เปิด' : '❌ ปิด',
             data: `toggle|${gid}|${field}|${!current}`,
           },
-          style: current ? 'primary' : 'secondary',
-          height: 'sm',
-          flex: 2,
-          color: current ? '#06c755' : '#aaaaaa',
         },
       ],
     };
   }
 
+  function msgBtn(label: string, text: string, color = '#e65100') {
+    return {
+      type: 'button', style: 'primary', color, height: 'sm', margin: 'xs',
+      action: { type: 'message', label, text },
+    };
+  }
+
   return {
     type: 'flex',
-    altText: `⚙️ ตั้งค่ากลุ่ม ${config.name}`,
+    altText: '⚙️ ตั้งค่ากลุ่ม',
     contents: {
       type: 'bubble',
       size: 'mega',
       header: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: '#06c755',
-        paddingAll: '16px',
+        type: 'box', layout: 'vertical',
+        backgroundColor: '#06c755', paddingAll: '16px',
         contents: [
           { type: 'text', text: '⚙️ ตั้งค่ากลุ่ม', color: '#ffffff', size: 'lg', weight: 'bold' },
+          { type: 'text', text: 'กดปุ่มเพื่อสลับ เปิด / ปิด', color: '#d4f5e2', size: 'xs', margin: 'xs' },
         ],
       },
       body: {
-        type: 'box',
-        layout: 'vertical',
-        paddingAll: '16px',
-        spacing: 'none',
+        type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none',
         contents: [
-          { type: 'text', text: 'กดปุ่มเพื่อสลับ เปิด / ปิด', size: 'xs', color: '#888888' },
+          // ─── บอท ───
+          toggleRow('🤖 เปิด-ปิดบอท', 'enabled', config.enabled),
           { type: 'separator', margin: 'sm' },
-          row('🤖 เปิด-ปิดบอท', 'enabled', config.enabled),
-          { type: 'separator', margin: 'xs' },
+
+          // ─── บันทึก ───
           { type: 'text', text: '📥 บันทึกข้อมูล', size: 'xs', color: '#888888', margin: 'sm' },
-          row('💬 บันทึกข้อความ', 'save_text', config.save_text),
-          row('📸 บันทึกรูปภาพ', 'save_images', config.save_images),
-          row('📁 บันทึกไฟล์', 'save_files', config.save_files),
-          { type: 'separator', margin: 'xs' },
-          { type: 'text', text: '📤 ส่งลิ้งโหลดกลับหลังอัปโหลด', size: 'xs', color: '#888888', margin: 'sm' },
-          row('🖼️ ลิ้งโหลดรูป', 'reply_images', config.reply_images !== false),
-          row('📄 ลิ้งโหลดไฟล์', 'reply_files', config.reply_files !== false),
-          { type: 'separator', margin: 'xs' },
+          toggleRow('💬 ข้อความ', 'save_text', config.save_text),
+          toggleRow('📸 รูปภาพ', 'save_images', config.save_images),
+          toggleRow('📁 ไฟล์', 'save_files', config.save_files),
+          { type: 'separator', margin: 'sm' },
+
+          // ─── ส่งลิ้งกลับ ───
+          { type: 'text', text: '📤 ส่งลิ้งกลับหลังอัปโหลด', size: 'xs', color: '#888888', margin: 'sm' },
+          toggleRow('🖼️ ลิ้งโหลดรูป', 'reply_images', config.reply_images !== false),
+          toggleRow('📄 ลิ้งโหลดไฟล์', 'reply_files', config.reply_files !== false),
+          { type: 'separator', margin: 'sm' },
+
+          // ─── รหัส ───
+          { type: 'text', text: '🔒 รหัสดาวน์โหลด', size: 'xs', color: '#888888', margin: 'sm' },
           {
             type: 'box', layout: 'horizontal', alignItems: 'center',
-            paddingTop: '8px', paddingBottom: '4px',
+            paddingTop: '4px', paddingBottom: '4px',
             contents: [
-              { type: 'text', text: '🔒 รหัสดาวน์โหลด', flex: 3, size: 'sm' },
-              { type: 'text', flex: 2, size: 'sm', align: 'end',
-                text: hasPassword ? `🔑 ${maskedPassword}` : '— ไม่มี —',
-                color: hasPassword ? '#e65100' : '#aaaaaa' },
+              {
+                type: 'text', flex: 3, size: 'sm',
+                text: hasPassword ? `🔑 ${maskedPassword}` : '— ไม่มีรหัส —',
+                color: hasPassword ? '#e65100' : '#aaaaaa',
+              },
+              {
+                type: 'button', flex: 2, height: 'sm',
+                style: 'secondary', color: '#e65100',
+                action: { type: 'postback', label: '🔑 ตั้งใหม่', data: `setpassword|${gid}` },
+              },
             ],
           },
-          { type: 'separator', margin: 'md' },
-          { type: 'text', text: '⌨️ คำสั่งตั้งค่า (ผู้ดูแลเท่านั้น)', weight: 'bold', size: 'sm', margin: 'md' },
+          { type: 'separator', margin: 'sm' },
+
+          // ─── ผู้ดูแล ───
+          { type: 'text', text: '👥 จัดการผู้ดูแล', size: 'xs', color: '#888888', margin: 'sm' },
           {
-            type: 'text', size: 'xs', color: '#555555', wrap: true, margin: 'sm',
-            text: '//  →  เปิดหน้าตั้งค่า\nตั้งค่า บอท เปิด/ปิด\nตั้งค่า รูป เปิด/ปิด\nตั้งค่า ไฟล์ เปิด/ปิด\nตั้งค่า ข้อความ เปิด/ปิด\nตั้งค่า ลิงก์รูป เปิด/ปิด\nตั้งค่า ลิงก์ไฟล์ เปิด/ปิด\nตั้งค่า รหัส abc123\nตั้งค่า รหัส ยกเลิก',
+            type: 'box', layout: 'horizontal', spacing: 'xs', margin: 'xs',
+            contents: [
+              msgBtn('➕ เพิ่มผู้ดูแล', 'เพิ่มผู้ดูแล'),
+              msgBtn('📋 รายชื่อ', 'รายชื่อผู้ดูแล', '#78909c'),
+            ],
           },
-          { type: 'separator', margin: 'md' },
-          { type: 'text', text: '👥 จัดการผู้ดูแล (ผู้ดูแลเท่านั้น)', weight: 'bold', size: 'sm', margin: 'md' },
+          msgBtn('➖ ลบผู้ดูแล', 'ลบผู้ดูแล', '#c62828'),
+          { type: 'separator', margin: 'sm' },
+
+          // ─── ทุกคน ───
+          { type: 'text', text: '🌐 ทุกคนใช้ได้', size: 'xs', color: '#888888', margin: 'sm' },
           {
-            type: 'text', size: 'xs', color: '#555555', wrap: true, margin: 'sm',
-            text: 'เพิ่มผู้ดูแล\nรายชื่อผู้ดูแล\nลบผู้ดูแล',
-          },
-          { type: 'separator', margin: 'md' },
-          { type: 'text', text: '🌐 คำสั่งสาธารณะ (ทุกคน)', weight: 'bold', size: 'sm', margin: 'md' },
-          {
-            type: 'text', size: 'xs', color: '#555555', wrap: true, margin: 'sm',
-            text: 'ดูไฟล์  →  ลิ้งดูไฟล์และรูปภาพ\nดูรูป  →  ลิ้งดูไฟล์และรูปภาพ\nดาวน์โหลด  →  ลิ้งดูไฟล์และรูปภาพ\nคู่มือ  →  คู่มือคำสั่งทั้งหมด',
+            type: 'box', layout: 'horizontal', spacing: 'xs', margin: 'xs',
+            contents: [
+              {
+                type: 'button', style: 'primary', color: '#26a69a', height: 'sm', flex: 1,
+                action: { type: 'message', label: '📖 คู่มือ', text: 'คู่มือ' },
+              },
+              {
+                type: 'button', style: 'primary', color: '#06c755', height: 'sm', flex: 1,
+                action: { type: 'uri', label: hasPassword ? '🔒 ดูไฟล์' : '📂 ดูไฟล์', uri: galleryUrl },
+              },
+            ],
           },
         ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', paddingAll: '10px',
+        contents: [{
+          type: 'button', style: 'secondary', height: 'sm',
+          action: { type: 'postback', label: '⌨️ ดูคำสั่งแบบพิมพ์เอง', data: `showcmds|${gid}` },
+        }],
       },
     },
   };

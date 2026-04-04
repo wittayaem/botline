@@ -5,7 +5,7 @@ import { handleFile } from './fileHandler';
 import { getGroup, upsertGroup } from '../services/groupConfig';
 import { getWelcomeConfig } from '../services/settings';
 import { client } from '../services/lineClient';
-import { handlePostback, isPendingAddOperator, getPendingAddTrigger, handlePendingAddOperator } from './commandHandler';
+import { handlePostback, isPendingAddOperator, getPendingAddTrigger, handlePendingAddOperator, isPendingPassword, getPendingPasswordTrigger, handlePendingPassword } from './commandHandler';
 import logger from '../utils/logger';
 
 async function sendWelcome(replyToken: string) {
@@ -61,6 +61,15 @@ export async function handleEvent(event: WebhookEvent) {
       if (!config.enabled) return; // ปิดบอทอยู่ — ไม่ทำอะไร
 
       const senderId = msgEvent.source.userId || '';
+
+      // Check pending "ตั้งรหัสผ่านใหม่" mode (ผู้ที่กดปุ่มเท่านั้น)
+      if (isPendingPassword(groupId) && msgEvent.message.type === 'text') {
+        const trigger = getPendingPasswordTrigger(groupId);
+        if (senderId === trigger) {
+          await handlePendingPassword(groupId, (msgEvent.message as any).text.trim(), replyToken);
+          return;
+        }
+      }
 
       // Check pending "เพิ่มผู้ดูแล" mode
       if (isPendingAddOperator(groupId)) {
