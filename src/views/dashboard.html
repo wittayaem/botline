@@ -696,11 +696,10 @@ function renderApproved(g, messages, statMap) {
 
     <div id="tab-images" class="tab-panel">
       <div class="filter-bar">
-        <input class="filter-input" id="imgSearchInput" placeholder="ค้นหาจากคำอธิบายรูป (AI caption)...">
-        <input type="date" class="filter-date" id="imgFromDate" title="วันที่เริ่มต้น">
+        <input class="filter-input" id="imgSearchInput" placeholder="ค้นหาจากคำอธิบายรูป (AI caption)..." oninput="debounceImg()">
+        <input type="date" class="filter-date" id="imgFromDate" title="วันที่เริ่มต้น" onchange="loadImages()">
         <span style="color:#aaa;font-size:13px">ถึง</span>
-        <input type="date" class="filter-date" id="imgToDate" title="วันที่สิ้นสุด">
-        <button class="filter-btn" onclick="loadImages()">🔍 ค้นหา</button>
+        <input type="date" class="filter-date" id="imgToDate" title="วันที่สิ้นสุด" onchange="loadImages()">
         <button class="filter-clear" onclick="clearImgFilter()">ล้าง</button>
       </div>
       <div id="imgGrid" class="img-grid">
@@ -710,11 +709,10 @@ function renderApproved(g, messages, statMap) {
 
     <div id="tab-files" class="tab-panel">
       <div class="filter-bar">
-        <input class="filter-input" id="fileSearchInput" placeholder="ค้นหาจากชื่อไฟล์...">
-        <input type="date" class="filter-date" id="fileFromDate" title="วันที่เริ่มต้น">
+        <input class="filter-input" id="fileSearchInput" placeholder="ค้นหาจากชื่อไฟล์..." oninput="debounceFile()">
+        <input type="date" class="filter-date" id="fileFromDate" title="วันที่เริ่มต้น" onchange="loadFiles()">
         <span style="color:#aaa;font-size:13px">ถึง</span>
-        <input type="date" class="filter-date" id="fileToDate" title="วันที่สิ้นสุด">
-        <button class="filter-btn" onclick="loadFiles()">🔍 ค้นหา</button>
+        <input type="date" class="filter-date" id="fileToDate" title="วันที่สิ้นสุด" onchange="loadFiles()">
         <button class="filter-clear" onclick="clearFileFilter()">ล้าง</button>
       </div>
       <div id="fileList" class="file-list">
@@ -849,6 +847,19 @@ async function searchImg() {
       `).join('')}
     </div>
   `;
+}
+
+let _imgTimer = null;
+let _fileTimer = null;
+
+function debounceImg() {
+  clearTimeout(_imgTimer);
+  _imgTimer = setTimeout(loadImages, 400);
+}
+
+function debounceFile() {
+  clearTimeout(_fileTimer);
+  _fileTimer = setTimeout(loadFiles, 400);
 }
 
 function clearImgFilter() {
