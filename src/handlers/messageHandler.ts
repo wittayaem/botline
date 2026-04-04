@@ -56,8 +56,10 @@ export async function handleEvent(event: WebhookEvent) {
       console.log(`\n⏳ [NEW GROUP] ${groupId} — รออนุมัติใน dashboard`);
     }
 
-    // approved → บันทึกข้อมูลตามปกติ
-    if (config.status === 'approved' && config.enabled) {
+    // approved → ไม่ส่ง welcome ไม่ว่า enabled จะเป็น true หรือ false
+    if (config.status === 'approved') {
+      if (!config.enabled) return; // ปิดบอทอยู่ — ไม่ทำอะไร
+
       const senderId = msgEvent.source.userId || '';
 
       // Check pending "เพิ่มผู้ดูแล" mode
@@ -83,6 +85,6 @@ export async function handleEvent(event: WebhookEvent) {
     }
   }
 
-  // ไม่ approved (กลุ่ม pending/rejected) หรือ DM → ส่ง welcome
+  // pending / rejected หรือ DM → ส่ง welcome
   await sendWelcome(replyToken);
 }
