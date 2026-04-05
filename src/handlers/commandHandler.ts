@@ -370,7 +370,7 @@ export function buildGuideMessage(groupId: string, baseUrl: string, config: any)
   const uriBtn = (label: string, uri: string, color = '#06c755') =>
     btn(label, { type: 'uri', label, uri }, color);
 
-  const logoUrl = `${baseUrl}/public/logo.png`;
+  const logoUrl = `${baseUrl}/public/logo-flex.png`;
 
   return {
     type: 'flex',
@@ -508,7 +508,7 @@ export function buildSettingsMessage(config: any): any {
     };
   }
 
-  const logoUrl = `${baseUrl}/public/logo.png`;
+  const logoUrl = `${baseUrl}/public/logo-flex.png`;
 
   return {
     type: 'flex',
