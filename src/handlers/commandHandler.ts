@@ -550,6 +550,7 @@ export function buildSettingsMessage(config: any): any {
           { type: 'text', text: '📤 ส่งลิ้งกลับหลังอัปโหลด', size: 'xs', color: '#888888', margin: 'sm' },
           toggleRow('🖼️ ลิ้งโหลดรูป', 'reply_images', config.reply_images !== false),
           toggleRow('📄 ลิ้งโหลดไฟล์', 'reply_files', config.reply_files !== false),
+          toggleRow('🎬 ลิ้งโหลดวิดีโอ', 'reply_videos', config.reply_videos !== false),
           { type: 'separator', margin: 'sm' },
 
           // ─── รหัส ───

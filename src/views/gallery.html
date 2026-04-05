@@ -273,6 +273,51 @@
       display: inline-block;
     }
 
+    /* ===== VIDEO LIST ===== */
+    .video-item {
+      background: white;
+      border-radius: 14px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .video-player {
+      width: 100%;
+      display: block;
+      background: #000;
+      max-height: 240px;
+    }
+    .video-footer {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .video-info { flex: 1; min-width: 0; }
+    .video-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #1c1c1e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .video-meta { font-size: 11px; color: #aeaeb2; margin-top: 2px; }
+    .video-dl {
+      background: #5856d6;
+      color: white;
+      border: none;
+      border-radius: 9px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+
     /* ===== STATES ===== */
     .center-state {
       flex: 1;
@@ -314,6 +359,7 @@
   <div class="tabs">
     <button class="tab-btn active" id="tab-btn-images" onclick="switchTab('images')">🖼️ รูปภาพ</button>
     <button class="tab-btn" id="tab-btn-files" onclick="switchTab('files')">📁 ไฟล์</button>
+    <button class="tab-btn" id="tab-btn-videos" onclick="switchTab('videos')">🎬 วิดีโอ</button>
   </div>
 
   <!-- Images pane -->
@@ -329,6 +375,16 @@
       <input type="search" id="file-search" placeholder="🔍 ค้นหาชื่อไฟล์..." autocomplete="off">
     </div>
     <div class="file-list" id="file-list">
+      <div class="center-state"><div class="ico">⏳</div><p>กำลังโหลด...</p></div>
+    </div>
+  </div>
+
+  <!-- Videos pane -->
+  <div class="tab-pane" id="pane-videos">
+    <div class="search-wrap">
+      <input type="search" id="video-search" placeholder="🔍 ค้นหาชื่อวิดีโอ..." autocomplete="off">
+    </div>
+    <div class="file-list" id="video-list">
       <div class="center-state"><div class="ico">⏳</div><p>กำลังโหลด...</p></div>
     </div>
   </div>
@@ -349,6 +405,7 @@
 <script>
 var groupId = (location.pathname.match(/\/g\/([^/?#]+)/) || [])[1] || '';
 var fileDebTimer;
+var videoDebTimer;
 
 // ===== INIT =====
 async function init() {
@@ -381,6 +438,10 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('file-search').addEventListener('input', function() {
     clearTimeout(fileDebTimer);
     fileDebTimer = setTimeout(function(){ loadFiles(document.getElementById('file-search').value.trim()); }, 300);
+  });
+  document.getElementById('video-search').addEventListener('input', function() {
+    clearTimeout(videoDebTimer);
+    videoDebTimer = setTimeout(function(){ loadVideos(document.getElementById('video-search').value.trim()); }, 300);
   });
   init();
 });
@@ -427,14 +488,15 @@ function showGallery() {
   document.getElementById('gallery-screen').style.display = 'flex';
   loadImages();
   loadFiles('');
+  loadVideos('');
 }
 
 // ===== TABS =====
 function switchTab(tab) {
-  document.getElementById('tab-btn-images').classList.toggle('active', tab === 'images');
-  document.getElementById('tab-btn-files').classList.toggle('active', tab === 'files');
-  document.getElementById('pane-images').classList.toggle('active', tab === 'images');
-  document.getElementById('pane-files').classList.toggle('active', tab === 'files');
+  ['images','files','videos'].forEach(function(t) {
+    document.getElementById('tab-btn-' + t).classList.toggle('active', tab === t);
+    document.getElementById('pane-' + t).classList.toggle('active', tab === t);
+  });
 }
 
 // ===== IMAGES =====
@@ -485,6 +547,30 @@ async function loadFiles(q) {
       + '</div>'
       + '<a class="file-dl" href="' + dlUrl + '" download="' + esc(r.file_name||'file') + '">📥 โหลด</a>'
       + '</div>';
+  }).join('');
+}
+
+// ===== VIDEOS =====
+async function loadVideos(q) {
+  var list = document.getElementById('video-list');
+  var url = '/g-api/' + groupId + '/videos' + (q ? '?q=' + encodeURIComponent(q) : '');
+  var rows = await fetch(url).then(function(r){ return r.json(); }).catch(function(){ return []; });
+  if (!Array.isArray(rows) || rows.length === 0) {
+    list.innerHTML = '<div class="center-state"><div class="ico">📭</div><p>' + (q ? 'ไม่พบวิดีโอที่ค้นหา' : 'ยังไม่มีวิดีโอ') + '</p></div>';
+    return;
+  }
+  list.innerHTML = rows.map(function(r) {
+    var dlUrl = '/g-file/' + groupId + '/' + r.message_id;
+    return '<div class="video-item">'
+      + '<video class="video-player" controls playsinline preload="none">'
+      + '<source src="' + dlUrl + '" type="video/mp4"></video>'
+      + '<div class="video-footer">'
+      + '<div class="video-info">'
+      + '<div class="video-name">' + esc(r.file_name || 'วิดีโอ') + '</div>'
+      + '<div class="video-meta">' + fmtSize(r.file_size) + (r.file_size ? ' · ' : '') + fmtDate(r.created_at) + '</div>'
+      + '</div>'
+      + '<a class="video-dl" href="' + dlUrl + '" download="' + esc(r.file_name||'video.mp4') + '">📥 โหลด</a>'
+      + '</div></div>';
   }).join('');
 }
 
