@@ -68,7 +68,10 @@ app.use(authRouter);
 app.use(downloadRouter);
 app.use(dashboardRouter);
 
-// 5. Public image endpoint (LINE ต้องการ URL สาธารณะเพื่อส่งรูปในแชท)
+// 5. Static public assets (logo ฯลฯ)
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// 7. Public image endpoint (LINE ต้องการ URL สาธารณะเพื่อส่งรูปในแชท)
 app.get('/img', (req, res) => {
   const filePath = req.query.path as string;
   if (!filePath) return res.status(400).end();
