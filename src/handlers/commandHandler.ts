@@ -3,7 +3,6 @@ import { client } from '../services/lineClient';
 import { getGroup, updateGroup } from '../services/groupConfig';
 import { getStorageUsageBytes } from '../services/database';
 import { isOperator, canManageOperators, addOperator, removeOperator, getOperators } from '../services/operators';
-import logger from '../utils/logger';
 
 // pending "เพิ่มผู้ดูแล" mode: groupId → { expiresAt, triggeredBy }
 const pendingAdd = new Map<string, { expiresAt: number; triggeredBy: string }>();
@@ -365,7 +364,7 @@ export function buildGuideMessage(groupId: string, baseUrl: string, config: any)
   const galleryUrl = `${baseUrl}/g/${groupId}`;
   const hasPassword = !!config?.download_password;
 
-  const btn = (label: string, action: any, color = '#06c755') => ({
+  const btn = (_label: string, action: any, color = '#06c755') => ({
     type: 'button', style: 'primary', color, height: 'sm', margin: 'sm',
     action,
   });
@@ -551,11 +550,19 @@ export function buildSettingsMessage(config: any, storageInfo?: { usedBytes: num
           { type: 'separator', margin: 'sm' },
 
           // ─── พื้นที่จัดเก็บ ───
-          ...(storageInfo?.limitGB != null ? (() => {
-            const limitBytes = storageInfo.limitGB! * 1024 * 1024 * 1024;
+          ...(storageInfo ? (() => {
+            const usedGB = (storageInfo.usedBytes / 1024 / 1024 / 1024).toFixed(2);
+            if (storageInfo.limitGB == null) {
+              // ไม่ได้กำหนด limit — แสดงแค่ usage
+              return [
+                { type: 'text', text: '💾 พื้นที่จัดเก็บ', size: 'xs', color: '#888888', margin: 'sm' },
+                { type: 'text', text: `ใช้ไปแล้ว ${usedGB} GB (ไม่จำกัด)`, size: 'xs', color: '#555555', margin: 'xs' },
+                { type: 'separator', margin: 'sm' },
+              ];
+            }
+            const limitBytes = storageInfo.limitGB * 1024 * 1024 * 1024;
             const pct = Math.min(100, Math.round((storageInfo.usedBytes / limitBytes) * 100));
             const barColor = pct >= 90 ? '#f44336' : pct >= 70 ? '#ff9800' : '#06c755';
-            const usedGB = (storageInfo.usedBytes / 1024 / 1024 / 1024).toFixed(2);
             const filledFlex = Math.max(1, pct);
             const emptyFlex = 100 - filledFlex;
             const barContents: any[] = [

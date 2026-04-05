@@ -45,6 +45,25 @@ async function runMigrations() {
   for (const sql of migrations) {
     await pool.query(sql).catch(() => {});
   }
+  // อัปเดต file_size ของรูปภาพ/วิดีโอเก่าที่ไม่มีขนาดไฟล์
+  try {
+    const [nullRows] = await pool.query<any[]>(
+      `SELECT message_id, file_path FROM messages
+       WHERE file_size IS NULL AND file_path IS NOT NULL LIMIT 2000`
+    );
+    let fixed = 0;
+    for (const row of nullRows) {
+      if (row.file_path && fs.existsSync(row.file_path)) {
+        const size = fs.statSync(row.file_path).size;
+        if (size > 0) {
+          await pool.query('UPDATE messages SET file_size = ? WHERE message_id = ?', [size, row.message_id]);
+          fixed++;
+        }
+      }
+    }
+    if (fixed > 0) logger.info({ fixed }, 'Fixed file_size for existing records');
+  } catch {}
+
   logger.info('DB migrations done');
 }
 

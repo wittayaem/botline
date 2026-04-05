@@ -5,6 +5,7 @@ import { saveMessage, getStorageUsageBytes } from '../services/database';
 import { getGroup } from '../services/groupConfig';
 import { retry } from '../utils/retry';
 import { Readable } from 'stream';
+import fs from 'fs';
 import logger from '../utils/logger';
 
 export async function handleVideo(event: MessageEvent, groupId: string) {
@@ -34,6 +35,8 @@ export async function handleVideo(event: MessageEvent, groupId: string) {
     return saveStream(stream as unknown as Readable, 'videos', fileName);
   });
 
+  const fileSize = fs.existsSync(filePath) ? fs.statSync(filePath).size : undefined;
+
   await saveMessage({
     message_id: msg.id,
     group_id: groupId,
@@ -41,6 +44,7 @@ export async function handleVideo(event: MessageEvent, groupId: string) {
     type: 'video',
     file_name: fileName,
     file_path: filePath,
+    file_size: fileSize,
     timestamp: event.timestamp,
   });
 
