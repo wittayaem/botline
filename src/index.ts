@@ -116,7 +116,7 @@ runMigrations().then(() => {
   checkExpiredGroups();
 
   app.listen(PORT, () => {
-    console.log(`\n✅ LINE Bot server running on port ${PORT}`);
+    console.log(`\n✅ ไลน์ฮับ server running on port ${PORT}`);
     console.log(`   Webhook  : http://localhost:${PORT}/webhook`);
     console.log(`   Dashboard: http://localhost:${PORT}/\n`);
   });
