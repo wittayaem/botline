@@ -40,6 +40,7 @@ async function runMigrations() {
     `ALTER TABLE groups_config ADD COLUMN save_videos  TINYINT(1) NOT NULL DEFAULT 1`,
     `ALTER TABLE groups_config ADD COLUMN reply_videos TINYINT(1) NOT NULL DEFAULT 1`,
     `ALTER TABLE messages MODIFY COLUMN type ENUM('text','image','file','video') NOT NULL`,
+    `ALTER TABLE groups_config ADD COLUMN storage_limit_gb DECIMAL(10,2) NULL`,
   ];
   for (const sql of migrations) {
     await pool.query(sql).catch(() => {});

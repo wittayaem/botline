@@ -23,6 +23,7 @@ export interface GroupConfig {
   welcome_text: string;
   welcome_image_url: string;
   expires_at?: string | null; // วันหมดอายุ (ISO string) หรือ null = ไม่มีกำหนด
+  storage_limit_gb?: number | null; // จำกัดพื้นที่ (GB) หรือ null = ไม่จำกัด
   added_at?: string;
 }
 
@@ -48,6 +49,7 @@ function toConfig(r: any): GroupConfig {
     welcome_text: r.welcome_text || '',
     welcome_image_url: r.welcome_image_url || '',
     expires_at: r.expires_at ? new Date(r.expires_at).toISOString() : null,
+    storage_limit_gb: r.storage_limit_gb != null ? Number(r.storage_limit_gb) : null,
     added_at: r.added_at,
   };
 }
@@ -71,7 +73,7 @@ export async function upsertGroup(groupId: string, name?: string): Promise<Group
 }
 
 export async function updateGroup(groupId: string, data: Partial<GroupConfig>) {
-  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'save_videos', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files', 'reply_videos', 'welcome_enabled', 'welcome_text', 'welcome_image_url', 'expires_at'];
+  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'save_videos', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files', 'reply_videos', 'welcome_enabled', 'welcome_text', 'welcome_image_url', 'expires_at', 'storage_limit_gb'];
   const keys = Object.keys(data).filter(k => allowed.includes(k));
   if (!keys.length) return;
   const fields = keys.map(k => `${k} = ?`).join(', ');

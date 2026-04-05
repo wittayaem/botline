@@ -1,7 +1,7 @@
 import { FileEventMessage, MessageEvent } from '@line/bot-sdk';
 import { blobClient, client } from '../services/lineClient';
 import { saveStream } from '../services/storage';
-import { saveMessage } from '../services/database';
+import { saveMessage, getStorageUsageBytes } from '../services/database';
 import { getGroup } from '../services/groupConfig';
 import { retry } from '../utils/retry';
 import { Readable } from 'stream';
@@ -11,6 +11,24 @@ export async function handleFile(event: MessageEvent, groupId: string) {
   const msg = event.message as FileEventMessage;
   const senderId = event.source.userId || 'unknown';
   const safeFileName = `${msg.id}-${msg.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+  const config = await getGroup(groupId);
+
+  // เช็ค quota ก่อน download
+  if (config?.storage_limit_gb) {
+    const usedBytes = await getStorageUsageBytes(groupId);
+    const limitBytes = config.storage_limit_gb * 1024 * 1024 * 1024;
+    const fileBytes = Number(msg.fileSize) || 0;
+    if (usedBytes + fileBytes >= limitBytes) {
+      try {
+        await client.replyMessage({ replyToken: event.replyToken, messages: [{
+          type: 'text',
+          text: `⚠️ พื้นที่จัดเก็บของกลุ่มนี้เต็มแล้ว\n📦 ใช้ไปแล้ว ${(usedBytes / 1024 / 1024 / 1024).toFixed(2)} GB / ${config.storage_limit_gb} GB\nกรุณาติดต่อผู้ดูแลระบบ`,
+        }]});
+      } catch {}
+      return;
+    }
+  }
 
   const filePath = await retry(async () => {
     const stream = await blobClient.getMessageContent(msg.id);
@@ -32,7 +50,6 @@ export async function handleFile(event: MessageEvent, groupId: string) {
 
   // ส่ง link กลับใน LINE
   const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');
-  const config = await getGroup(groupId);
   if (baseUrl && config?.reply_files !== false) {
     const hasPassword = !!config?.download_password;
     const galleryUrl = `${baseUrl}/g/${groupId}`;

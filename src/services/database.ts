@@ -132,6 +132,14 @@ export async function filterVideos(groupId: string, keyword?: string, fromDate?:
   return rows;
 }
 
+export async function getStorageUsageBytes(groupId: string): Promise<number> {
+  const [rows] = await pool.query<any[]>(
+    `SELECT COALESCE(SUM(file_size), 0) AS total FROM messages WHERE group_id = ? AND file_size IS NOT NULL`,
+    [groupId]
+  );
+  return Number(rows[0]?.total || 0);
+}
+
 export async function countByGroup(groupId: string) {
   const [rows] = await pool.query<any[]>(
     `SELECT type, COUNT(*) as count FROM messages WHERE group_id = ? GROUP BY type`,

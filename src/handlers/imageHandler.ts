@@ -1,7 +1,7 @@
 import { ImageEventMessage, MessageEvent } from '@line/bot-sdk';
 import { blobClient, client } from '../services/lineClient';
 import { saveStream } from '../services/storage';
-import { saveMessage, updateCaption } from '../services/database';
+import { saveMessage, updateCaption, getStorageUsageBytes } from '../services/database';
 import { captionImage } from '../services/vision';
 import { getGroup } from '../services/groupConfig';
 import { retry } from '../utils/retry';
@@ -11,6 +11,23 @@ import logger from '../utils/logger';
 export async function handleImage(event: MessageEvent, groupId: string) {
   const msg = event.message as ImageEventMessage;
   const senderId = event.source.userId || 'unknown';
+
+  const config = await getGroup(groupId);
+
+  // เช็ค quota ก่อน download
+  if (config?.storage_limit_gb) {
+    const usedBytes = await getStorageUsageBytes(groupId);
+    const limitBytes = config.storage_limit_gb * 1024 * 1024 * 1024;
+    if (usedBytes >= limitBytes) {
+      try {
+        await client.replyMessage({ replyToken: event.replyToken, messages: [{
+          type: 'text',
+          text: `⚠️ พื้นที่จัดเก็บของกลุ่มนี้เต็มแล้ว\n📦 ใช้ไปแล้ว ${(usedBytes / 1024 / 1024 / 1024).toFixed(2)} GB / ${config.storage_limit_gb} GB\nกรุณาติดต่อผู้ดูแลระบบ`,
+        }]});
+      } catch {}
+      return;
+    }
+  }
 
   const filePath = await retry(async () => {
     const stream = await blobClient.getMessageContent(msg.id);
@@ -27,8 +44,6 @@ export async function handleImage(event: MessageEvent, groupId: string) {
   });
 
   logger.info({ type: 'image', senderId, filePath }, 'Image saved');
-
-  const config = await getGroup(groupId);
 
   // ส่ง link กลับใน LINE
   const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');

@@ -8,3 +8,4 @@ storage/files/
 logs/
 *.log
 *.DS_Store
+PRODUCT_INFO.md

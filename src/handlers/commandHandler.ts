@@ -1,6 +1,7 @@
 import { PostbackEvent } from '@line/bot-sdk';
 import { client } from '../services/lineClient';
 import { getGroup, updateGroup } from '../services/groupConfig';
+import { getStorageUsageBytes } from '../services/database';
 import { isOperator, canManageOperators, addOperator, removeOperator, getOperators } from '../services/operators';
 import logger from '../utils/logger';
 
@@ -151,7 +152,8 @@ export async function handleCommand(
     const config = await getGroup(groupId);
     if (!config) return false;
     try {
-      await client.replyMessage({ replyToken, messages: [buildSettingsMessage(config)] });
+      const usedBytes = await getStorageUsageBytes(groupId);
+      await client.replyMessage({ replyToken, messages: [buildSettingsMessage(config, { usedBytes, limitGB: config.storage_limit_gb ?? null })] });
     } catch {}
     return true;
   }
@@ -161,7 +163,8 @@ export async function handleCommand(
     const config = await getGroup(groupId);
     if (!config) return false;
     try {
-      await client.replyMessage({ replyToken, messages: [buildSettingsMessage(config)] });
+      const usedBytes = await getStorageUsageBytes(groupId);
+      await client.replyMessage({ replyToken, messages: [buildSettingsMessage(config, { usedBytes, limitGB: config.storage_limit_gb ?? null })] });
     } catch {}
     return true;
   }
@@ -350,9 +353,10 @@ export async function handlePostback(event: PostbackEvent) {
   const updated = { ...config, [field]: newValue };
 
   try {
+    const usedBytes = await getStorageUsageBytes(groupId);
     await client.replyMessage({
       replyToken: event.replyToken,
-      messages: [buildSettingsMessage(updated as any)],
+      messages: [buildSettingsMessage(updated as any, { usedBytes, limitGB: config.storage_limit_gb ?? null })],
     });
   } catch {}
 }
@@ -469,7 +473,7 @@ export function buildTextCommandsCard(): any {
   };
 }
 
-export function buildSettingsMessage(config: any): any {
+export function buildSettingsMessage(config: any, storageInfo?: { usedBytes: number; limitGB: number | null } | null): any {
   const gid = config.group_id;
   const hasPassword = !!config.download_password;
   const maskedPassword = hasPassword
@@ -545,6 +549,32 @@ export function buildSettingsMessage(config: any): any {
           toggleRow('📁 ไฟล์', 'save_files', config.save_files),
           toggleRow('🎬 วิดีโอ', 'save_videos', config.save_videos !== false),
           { type: 'separator', margin: 'sm' },
+
+          // ─── พื้นที่จัดเก็บ ───
+          ...(storageInfo?.limitGB != null ? (() => {
+            const limitBytes = storageInfo.limitGB! * 1024 * 1024 * 1024;
+            const pct = Math.min(100, Math.round((storageInfo.usedBytes / limitBytes) * 100));
+            const barColor = pct >= 90 ? '#f44336' : pct >= 70 ? '#ff9800' : '#06c755';
+            const usedGB = (storageInfo.usedBytes / 1024 / 1024 / 1024).toFixed(2);
+            const filledFlex = Math.max(1, pct);
+            const emptyFlex = 100 - filledFlex;
+            const barContents: any[] = [
+              { type: 'box', layout: 'vertical', flex: filledFlex, backgroundColor: barColor,
+                cornerRadius: '4px', paddingTop: '5px', paddingBottom: '5px', contents: [] },
+            ];
+            if (emptyFlex > 0) {
+              barContents.push({ type: 'box', layout: 'vertical', flex: emptyFlex, backgroundColor: '#e0e0e0',
+                cornerRadius: '4px', paddingTop: '5px', paddingBottom: '5px', contents: [] });
+            }
+            return [
+              { type: 'text', text: '💾 พื้นที่จัดเก็บ', size: 'xs', color: '#888888', margin: 'sm' },
+              { type: 'box', layout: 'horizontal', margin: 'sm', spacing: 'xs', contents: barContents },
+              { type: 'text',
+                text: `${usedGB} GB / ${storageInfo.limitGB} GB (${pct}%)`,
+                size: 'xs', color: pct >= 90 ? '#f44336' : '#555555', margin: 'xs' },
+              { type: 'separator', margin: 'sm' },
+            ];
+          })() : []),
 
           // ─── ส่งลิ้งกลับ ───
           { type: 'text', text: '📤 ส่งลิ้งกลับหลังอัปโหลด', size: 'xs', color: '#888888', margin: 'sm' },
