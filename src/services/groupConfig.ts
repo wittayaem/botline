@@ -17,6 +17,8 @@ export interface GroupConfig {
   ai_equipment: boolean;
   reply_images: boolean;
   reply_files: boolean;
+  save_videos: boolean;
+  reply_videos: boolean;
   welcome_enabled: boolean;
   welcome_text: string;
   welcome_image_url: string;
@@ -40,6 +42,8 @@ function toConfig(r: any): GroupConfig {
     ai_equipment: r.ai_equipment === undefined ? true : !!r.ai_equipment,
     reply_images: r.reply_images === undefined ? true : !!r.reply_images,
     reply_files: r.reply_files === undefined ? true : !!r.reply_files,
+    save_videos: r.save_videos === undefined ? true : !!r.save_videos,
+    reply_videos: r.reply_videos === undefined ? true : !!r.reply_videos,
     welcome_enabled: !!r.welcome_enabled,
     welcome_text: r.welcome_text || '',
     welcome_image_url: r.welcome_image_url || '',
@@ -67,7 +71,7 @@ export async function upsertGroup(groupId: string, name?: string): Promise<Group
 }
 
 export async function updateGroup(groupId: string, data: Partial<GroupConfig>) {
-  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files', 'welcome_enabled', 'welcome_text', 'welcome_image_url', 'expires_at'];
+  const allowed = ['name', 'status', 'enabled', 'save_text', 'save_images', 'save_files', 'save_videos', 'download_password', 'ai_caption', 'ai_model', 'ai_chat', 'ai_equipment', 'reply_images', 'reply_files', 'reply_videos', 'welcome_enabled', 'welcome_text', 'welcome_image_url', 'expires_at'];
   const keys = Object.keys(data).filter(k => allowed.includes(k));
   if (!keys.length) return;
   const fields = keys.map(k => `${k} = ?`).join(', ');

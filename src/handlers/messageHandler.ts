@@ -2,6 +2,7 @@ import { WebhookEvent, MessageEvent, JoinEvent, PostbackEvent } from '@line/bot-
 import { handleText } from './textHandler';
 import { handleImage } from './imageHandler';
 import { handleFile } from './fileHandler';
+import { handleVideo } from './videoHandler';
 import { getGroup, upsertGroup } from '../services/groupConfig';
 import { getWelcomeConfig } from '../services/settings';
 import { client } from '../services/lineClient';
@@ -89,6 +90,7 @@ export async function handleEvent(event: WebhookEvent) {
         case 'text':  if (config.save_text)   await handleText(msgEvent, groupId);  break;
         case 'image': if (config.save_images) await handleImage(msgEvent, groupId); break;
         case 'file':  if (config.save_files)  await handleFile(msgEvent, groupId);  break;
+        case 'video': if (config.save_videos) await handleVideo(msgEvent, groupId); break;
       }
       return;
     }

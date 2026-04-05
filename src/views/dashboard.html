@@ -334,6 +334,7 @@
     <button class="tab-btn" id="tabMessages" onclick="switchTab('messages')">💬 ข้อความล่าสุด <span class="refresh-dot"></span></button>
     <button class="tab-btn" onclick="switchTab('images')">🖼️ รูปภาพ</button>
     <button class="tab-btn" onclick="switchTab('files')">📁 ไฟล์</button>
+    <button class="tab-btn" onclick="switchTab('videos')">🎬 วิดีโอ</button>
   </div>
   <div class="content" id="content">
     <div class="empty">
@@ -422,11 +423,11 @@ function groupItemHtml(g) {
 
 function switchTab(tab) {
   currentTab = tab;
-  const tabMap = { settings: 0, messages: 1, images: 2, files: 3 };
+  const tabMap = { settings: 0, messages: 1, images: 2, files: 3, videos: 4 };
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
     btn.classList.toggle('active', i === tabMap[tab]);
   });
-  ['settings', 'messages', 'images', 'files'].forEach(t => {
+  ['settings', 'messages', 'images', 'files', 'videos'].forEach(t => {
     const el = document.getElementById('tab-' + t);
     if (el) el.classList.toggle('active', t === tab);
   });
@@ -438,6 +439,7 @@ function switchTab(tab) {
   }
   if (tab === 'images') loadImages();
   if (tab === 'files') loadFiles();
+  if (tab === 'videos') loadVideos();
 }
 
 function startMsgRefresh() {
@@ -548,6 +550,10 @@ function renderApproved(g, messages, statMap) {
           <div class="label">ไฟล์</div><div class="value" style="color:#e65100">${statMap.file || 0}</div>
           <div style="font-size:11px;color:#e65100;margin-top:4px">ดูทั้งหมด →</div>
         </div>
+        <div class="card" onclick="switchTab('videos')" style="cursor:pointer;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 2px 12px rgba(21,101,192,0.2)'" onmouseout="this.style.boxShadow=''">
+          <div class="label">วิดีโอ</div><div class="value" style="color:#1565c0">${statMap.video || 0}</div>
+          <div style="font-size:11px;color:#1565c0;margin-top:4px">ดูทั้งหมด →</div>
+        </div>
       </div>
 
       <div class="section">
@@ -580,6 +586,12 @@ function renderApproved(g, messages, statMap) {
           </div>
           <label class="toggle"><input type="checkbox" id="save_files" ${g.save_files ? 'checked' : ''} onchange="updateFeature('save_files',this.checked)"><span class="slider"></span></label>
         </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">🎬 บันทึกวิดีโอ</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="save_videos" ${g.save_videos !== false ? 'checked' : ''} onchange="updateFeature('save_videos',this.checked)"><span class="slider"></span></label>
+        </div>
       </div>
 
       <div class="section">
@@ -597,6 +609,13 @@ function renderApproved(g, messages, statMap) {
             <div class="settings-desc">บอทจะส่งการ์ดพร้อมปุ่มดาวน์โหลดกลับในกลุ่มทุกครั้งที่มีคนส่งไฟล์</div>
           </div>
           <label class="toggle"><input type="checkbox" id="reply_files" ${g.reply_files !== false ? 'checked' : ''} onchange="updateFeature('reply_files',this.checked)"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">🎬 ส่งลิงก์เมื่อบันทึกวิดีโอ</div>
+            <div class="settings-desc">บอทจะส่งการ์ดพร้อมปุ่มดูวิดีโอกลับในกลุ่มทุกครั้งที่มีคนส่งวิดีโอ</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="reply_videos" ${g.reply_videos !== false ? 'checked' : ''} onchange="updateFeature('reply_videos',this.checked)"><span class="slider"></span></label>
         </div>
         <div class="settings-row">
           <div>
@@ -761,6 +780,19 @@ function renderApproved(g, messages, statMap) {
         <button class="filter-clear" onclick="clearFileFilter()">ล้าง</button>
       </div>
       <div id="fileList" class="file-list">
+        <div style="text-align:center;color:#aaa;padding:40px">กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <div id="tab-videos" class="tab-panel">
+      <div class="filter-bar">
+        <input class="filter-input" id="videoSearchInput" placeholder="ค้นหาจากชื่อวิดีโอ..." oninput="debounceVideo()">
+        <input type="date" class="filter-date" id="videoFromDate" title="วันที่เริ่มต้น" onchange="loadVideos()">
+        <span style="color:#aaa;font-size:13px">ถึง</span>
+        <input type="date" class="filter-date" id="videoToDate" title="วันที่สิ้นสุด" onchange="loadVideos()">
+        <button class="filter-clear" onclick="clearVideoFilter()">ล้าง</button>
+      </div>
+      <div id="videoList" class="file-list">
         <div style="text-align:center;color:#aaa;padding:40px">กำลังโหลด...</div>
       </div>
     </div>
@@ -1399,6 +1431,48 @@ async function loadFiles() {
         <div class="file-meta">${formatBytes(f.file_size)}${f.file_size ? ' · ' : ''}${new Date(Number(f.timestamp)).toLocaleString('th-TH')}</div>
       </div>
       <a class="file-dl" href="/dl/${f.message_id}" target="_blank">📥 ดาวน์โหลด</a>
+    </div>
+  `).join('');
+}
+
+let videoDebounceTimer = null;
+function debounceVideo() {
+  clearTimeout(videoDebounceTimer);
+  videoDebounceTimer = setTimeout(loadVideos, 400);
+}
+
+function clearVideoFilter() {
+  document.getElementById('videoSearchInput').value = '';
+  document.getElementById('videoFromDate').value = '';
+  document.getElementById('videoToDate').value = '';
+  loadVideos();
+}
+
+async function loadVideos() {
+  const list = document.getElementById('videoList');
+  if (!list || !currentGroupId) return;
+  list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px">กำลังโหลด...</div>';
+  const q    = document.getElementById('videoSearchInput')?.value.trim() || '';
+  const from = document.getElementById('videoFromDate')?.value || '';
+  const to   = document.getElementById('videoToDate')?.value || '';
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const res = await fetch(`/api/groups/${currentGroupId}/videos?${params}`);
+  const videos = await res.json();
+  if (!videos.length) {
+    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px">ยังไม่มีวิดีโอ</div>';
+    return;
+  }
+  list.innerHTML = videos.map(v => `
+    <div class="file-item">
+      <div class="file-icon">🎬</div>
+      <div class="file-info">
+        <div class="file-name" title="${escHtml(v.file_name || '')}">${escHtml(v.file_name || 'วิดีโอ.mp4')}</div>
+        <div class="file-meta">${formatBytes(v.file_size)}${v.file_size ? ' · ' : ''}${new Date(v.created_at).toLocaleString('th-TH')}</div>
+      </div>
+      <a class="file-dl" href="/dl/${v.message_id}" target="_blank">📥 ดาวน์โหลด</a>
     </div>
   `).join('');
 }

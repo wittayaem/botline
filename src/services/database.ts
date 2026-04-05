@@ -116,6 +116,22 @@ export async function filterFiles(groupId: string, keyword?: string, fromDate?: 
   return rows;
 }
 
+export async function filterVideos(groupId: string, keyword?: string, fromDate?: string, toDate?: string, limit = 200) {
+  let where = `group_id = ? AND type = 'video'`;
+  const params: any[] = [groupId];
+  if (keyword) {
+    where += ` AND file_name LIKE ?`;
+    params.push(`%${keyword}%`);
+  }
+  if (fromDate) { where += ` AND DATE(FROM_UNIXTIME(timestamp/1000)) >= ?`; params.push(fromDate); }
+  if (toDate)   { where += ` AND DATE(FROM_UNIXTIME(timestamp/1000)) <= ?`; params.push(toDate); }
+  const [rows] = await pool.query<any[]>(
+    `SELECT * FROM messages WHERE ${where} ORDER BY created_at DESC LIMIT ?`,
+    [...params, limit]
+  );
+  return rows;
+}
+
 export async function countByGroup(groupId: string) {
   const [rows] = await pool.query<any[]>(
     `SELECT type, COUNT(*) as count FROM messages WHERE group_id = ? GROUP BY type`,

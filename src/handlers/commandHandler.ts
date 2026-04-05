@@ -543,6 +543,7 @@ export function buildSettingsMessage(config: any): any {
           toggleRow('💬 ข้อความ', 'save_text', config.save_text),
           toggleRow('📸 รูปภาพ', 'save_images', config.save_images),
           toggleRow('📁 ไฟล์', 'save_files', config.save_files),
+          toggleRow('🎬 วิดีโอ', 'save_videos', config.save_videos !== false),
           { type: 'separator', margin: 'sm' },
 
           // ─── ส่งลิ้งกลับ ───

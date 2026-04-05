@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getAllGroups, getGroup, updateGroup, upsertGroup } from '../services/groupConfig';
 import { getWelcomeConfig, setSetting } from '../services/settings';
-import { getMessagesByGroup, countByGroup, searchImages, filterImages, filterFiles } from '../services/database';
+import { getMessagesByGroup, countByGroup, searchImages, filterImages, filterFiles, filterVideos } from '../services/database';
 import { client } from '../services/lineClient';
 import pool from '../services/db';
 import fs from 'fs';
@@ -129,10 +129,10 @@ router.post('/api/groups/:groupId', requireLogin, async (req, res) => {
   const { groupId } = req.params;
   const groupIds = await getAccessibleGroupIds(req);
   if (groupIds !== null && !groupIds.includes(groupId)) return res.status(403).json({ error: 'forbidden' });
-  const { name, enabled, save_text, save_images, save_files, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files } = req.body;
+  const { name, enabled, save_text, save_images, save_files, save_videos, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files, reply_videos } = req.body;
   let config = await getGroup(groupId);
   if (!config) await upsertGroup(groupId, name);
-  await updateGroup(groupId, { name, enabled, save_text, save_images, save_files, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files });
+  await updateGroup(groupId, { name, enabled, save_text, save_images, save_files, save_videos, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files, reply_videos });
   res.json({ success: true });
 });
 
@@ -215,6 +215,21 @@ router.get('/api/groups/:groupId/images', requireLogin, async (req, res) => {
   const rows = await filterImages(groupId, q, from, to, limit);
   res.json(rows);
 });
+
+// API: ดึงวิดีโอทั้งหมดในกลุ่ม
+router.get('/api/groups/:groupId/videos', requireLogin, async (req, res) => {
+  const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
+  const q = (req.query.q as string || '').trim() || undefined;
+  const from = (req.query.from as string) || undefined;
+  const to   = (req.query.to   as string) || undefined;
+  const limit = Number(req.query.limit) || 200;
+  const rows = await filterVideos(groupId, q, from, to, limit);
+  res.json(rows);
+});
+
+// API: อัปเดต config วิดีโอ
+// (ใช้ร่วมกับ POST /api/groups/:groupId ที่มีอยู่แล้ว)
 
 // API: ค้นหารูปด้วย AI caption
 router.get('/api/groups/:groupId/search', requireLogin, async (req, res) => {

@@ -163,6 +163,26 @@ router.get('/g-api/:groupId/files', async (req, res) => {
   res.json(rows);
 });
 
+router.get('/g-api/:groupId/videos', async (req, res) => {
+  const { groupId } = req.params;
+  const q = (req.query.q as string || '').trim();
+  const [cfg] = await pool.query<any[]>(
+    'SELECT download_password FROM groups_config WHERE group_id = ? LIMIT 1', [groupId]
+  );
+  if (!cfg[0]) return res.status(404).json({ error: 'not found' });
+  if (!isGalleryAuthed(req, groupId, cfg[0].download_password || null))
+    return res.status(401).json({ error: 'unauthorized' });
+  let where = `group_id = ? AND type = 'video'`;
+  const params: any[] = [groupId];
+  if (q) { where += ` AND file_name LIKE ?`; params.push(`%${q}%`); }
+  const [rows] = await pool.query<any[]>(
+    `SELECT message_id, file_name, file_size, created_at FROM messages
+     WHERE ${where} ORDER BY created_at DESC LIMIT 300`,
+    params
+  );
+  res.json(rows);
+});
+
 router.get('/g-file/:groupId/:messageId', async (req, res) => {
   const { groupId, messageId } = req.params;
   const [cfg] = await pool.query<any[]>(
@@ -177,10 +197,39 @@ router.get('/g-file/:groupId/:messageId', async (req, res) => {
   );
   const rec = rows[0];
   if (!rec || !rec.file_path || !fs.existsSync(rec.file_path)) return res.status(404).end();
-  if (rec.type === 'image') {
-    res.sendFile(path.resolve(rec.file_path));
+
+  const filePath = path.resolve(rec.file_path);
+
+  if (rec.type === 'video') {
+    // Range Request — จำเป็นสำหรับ iOS Safari และ HTML5 video streaming
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+    if (range) {
+      const [startStr, endStr] = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(startStr, 10);
+      const end = endStr ? parseInt(endStr, 10) : fileSize - 1;
+      const chunkSize = end - start + 1;
+      const fileStream = fs.createReadStream(filePath, { start, end });
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': 'video/mp4',
+      });
+      fileStream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': 'video/mp4',
+        'Accept-Ranges': 'bytes',
+      });
+      fs.createReadStream(filePath).pipe(res);
+    }
+  } else if (rec.type === 'image') {
+    res.sendFile(filePath);
   } else {
-    res.download(path.resolve(rec.file_path), rec.file_name || 'file');
+    res.download(filePath, rec.file_name || 'file');
   }
 });
 

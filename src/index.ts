@@ -37,6 +37,9 @@ async function runMigrations() {
     `ALTER TABLE groups_config ADD COLUMN welcome_image_url VARCHAR(500) DEFAULT ''`,
     `ALTER TABLE messages ADD COLUMN file_size BIGINT NULL`,
     `ALTER TABLE groups_config ADD COLUMN expires_at DATETIME NULL`,
+    `ALTER TABLE groups_config ADD COLUMN save_videos  TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE groups_config ADD COLUMN reply_videos TINYINT(1) NOT NULL DEFAULT 1`,
+    `ALTER TABLE messages MODIFY COLUMN type ENUM('text','image','file','video') NOT NULL`,
   ];
   for (const sql of migrations) {
     await pool.query(sql).catch(() => {});
