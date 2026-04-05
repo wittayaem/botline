@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getAllGroups, getGroup, updateGroup, upsertGroup } from '../services/groupConfig';
 import { getWelcomeConfig, setSetting } from '../services/settings';
-import { getMessagesByGroup, countByGroup, searchImages, filterImages, filterFiles, filterVideos } from '../services/database';
+import { getMessagesByGroup, countByGroup, searchImages, filterImages, filterFiles, filterVideos, getStorageUsageBytes } from '../services/database';
 import { client } from '../services/lineClient';
 import pool from '../services/db';
 import fs from 'fs';
@@ -129,10 +129,11 @@ router.post('/api/groups/:groupId', requireLogin, async (req, res) => {
   const { groupId } = req.params;
   const groupIds = await getAccessibleGroupIds(req);
   if (groupIds !== null && !groupIds.includes(groupId)) return res.status(403).json({ error: 'forbidden' });
-  const { name, enabled, save_text, save_images, save_files, save_videos, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files, reply_videos } = req.body;
+  const { name, enabled, save_text, save_images, save_files, save_videos, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files, reply_videos, storage_limit_gb } = req.body;
   let config = await getGroup(groupId);
   if (!config) await upsertGroup(groupId, name);
-  await updateGroup(groupId, { name, enabled, save_text, save_images, save_files, save_videos, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files, reply_videos });
+  const limitGB = storage_limit_gb != null && storage_limit_gb !== '' ? Number(storage_limit_gb) || null : null;
+  await updateGroup(groupId, { name, enabled, save_text, save_images, save_files, save_videos, download_password, ai_caption, ai_model, ai_chat, ai_equipment, reply_images, reply_files, reply_videos, storage_limit_gb: limitGB });
   res.json({ success: true });
 });
 
@@ -164,6 +165,17 @@ router.post('/api/groups/:groupId/approve', requireLogin, async (req, res) => {
 router.post('/api/groups/:groupId/reject', requireLogin, async (req, res) => {
   await updateGroup(req.params.groupId, { status: 'rejected' });
   res.json({ success: true });
+});
+
+// API: ดึงพื้นที่จัดเก็บของกลุ่ม
+router.get('/api/groups/:groupId/storage', requireLogin, async (req, res) => {
+  const { groupId } = req.params;
+  if (!await checkGroupAccess(req, res, groupId)) return;
+  const [usedBytes, group] = await Promise.all([
+    getStorageUsageBytes(groupId),
+    getGroup(groupId),
+  ]);
+  res.json({ usedBytes, limitGB: group?.storage_limit_gb ?? null });
 });
 
 // API: ดึงข้อความในกลุ่ม

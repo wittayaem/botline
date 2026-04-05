@@ -501,6 +501,7 @@ async function selectGroup(groupId) {
   document.getElementById('tabsBar').style.display = 'flex';
   renderApproved(g, messages, statMap);
   loadOperators(groupId);
+  loadStorageUsage(groupId);
 
   // viewer เปิด images tab อัตโนมัติ
   switchTab(me.role === 'viewer' ? 'images' : currentTab);
@@ -556,6 +557,8 @@ function renderApproved(g, messages, statMap) {
         </div>
       </div>
 
+      <div id="storage-bar-wrap"></div>
+
       <div class="section">
         <div class="section-header">ตั้งค่าทั่วไป</div>
         <div class="settings-row">
@@ -591,6 +594,18 @@ function renderApproved(g, messages, statMap) {
             <div class="settings-label">🎬 บันทึกวิดีโอ</div>
           </div>
           <label class="toggle"><input type="checkbox" id="save_videos" ${g.save_videos !== false ? 'checked' : ''} onchange="updateFeature('save_videos',this.checked)"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">💾 จำกัดพื้นที่จัดเก็บ</div>
+            <div class="settings-desc">ระบุขนาดสูงสุด (GB) ปล่อยว่าง = ไม่จำกัด</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="name-input" id="storage_limit_gb" type="number" min="0.5" max="10000" step="0.5"
+              value="${g.storage_limit_gb || ''}" placeholder="ไม่จำกัด" style="width:90px;text-align:right">
+            <span style="font-size:13px;color:#888">GB</span>
+            <button class="save-btn" onclick="saveStorageLimit()">บันทึก</button>
+          </div>
         </div>
       </div>
 
@@ -904,8 +919,15 @@ async function showApproveManager() {
       html += `<div style="background:white;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
         <div style="font-weight:600;font-size:14px;margin-bottom:4px">${escHtml(g.name||'ไม่ทราบชื่อ')}</div>
         <div style="font-size:11px;color:#aaa;margin-bottom:12px;font-family:monospace">${g.group_id}</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
           ${durationPicker(g.group_id, null)}
+          <span style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:12px;color:#888">💾</span>
+            <input type="number" id="storage-gb-${g.group_id}" min="0.5" max="10000" step="0.5"
+              value="${g.storage_limit_gb || ''}" placeholder="ไม่จำกัด"
+              style="width:80px;padding:5px 8px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;text-align:right">
+            <span style="font-size:12px;color:#aaa">GB</span>
+          </span>
           <button onclick="doApprove('${g.group_id}')" style="background:#06c755;color:white;border:none;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:600;cursor:pointer">✅ อนุมัติ</button>
           <button onclick="rejectGroup('${g.group_id}')" style="background:white;color:#e53e3e;border:1.5px solid #e53e3e;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer">❌ ปฏิเสธ</button>
         </div>
@@ -920,14 +942,21 @@ async function showApproveManager() {
   } else {
     for (const g of approved) {
       html += `<div style="background:white;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div>
             <div style="font-weight:600;font-size:14px;margin-bottom:2px">${escHtml(g.name||'ไม่ทราบชื่อ')}</div>
             <div style="font-size:11px;color:#aaa;font-family:monospace;margin-bottom:6px">${g.group_id}</div>
             ${expiryBadge(g)}
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+          <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;align-items:center">
             ${durationPicker(g.group_id, g.expires_at)}
+            <span style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:12px;color:#888">💾</span>
+              <input type="number" id="storage-gb-${g.group_id}" min="0.5" max="10000" step="0.5"
+                value="${g.storage_limit_gb || ''}" placeholder="ไม่จำกัด"
+                style="width:80px;padding:5px 8px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:12px;outline:none;text-align:right">
+              <span style="font-size:12px;color:#aaa">GB</span>
+            </span>
             <button onclick="doApprove('${g.group_id}')" style="background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer">🔄 ต่ออายุ</button>
             <button onclick="rejectGroup('${g.group_id}')" style="background:white;color:#e53e3e;border:1.5px solid #e53e3e;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">❌ ปฏิเสธ</button>
           </div>
@@ -943,13 +972,20 @@ async function showApproveManager() {
   } else {
     for (const g of rejected) {
       html += `<div style="background:#fff8f8;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div>
             <div style="font-weight:600;font-size:14px;margin-bottom:2px">${escHtml(g.name||'ไม่ทราบชื่อ')}</div>
             <div style="font-size:11px;color:#aaa;font-family:monospace">${g.group_id}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+          <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;align-items:center">
             ${durationPicker(g.group_id, null)}
+            <span style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:12px;color:#888">💾</span>
+              <input type="number" id="storage-gb-${g.group_id}" min="0.5" max="10000" step="0.5"
+                value="${g.storage_limit_gb || ''}" placeholder="ไม่จำกัด"
+                style="width:80px;padding:5px 8px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:12px;outline:none;text-align:right">
+              <span style="font-size:12px;color:#aaa">GB</span>
+            </span>
             <button onclick="doApprove('${g.group_id}')" style="background:#06c755;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer">✅ อนุมัติ</button>
           </div>
         </div>
@@ -967,7 +1003,20 @@ function onDurChange(gid) {
   if (sel && cust) cust.style.display = sel.value === 'custom' ? 'inline-block' : 'none';
 }
 
-function doApprove(gid) {
+async function doApprove(gid) {
+  // บันทึก storage limit ก่อน (ถ้ามี input)
+  const storageInput = document.getElementById('storage-gb-' + gid);
+  const storageVal = storageInput ? storageInput.value.trim() : '';
+  const storageGB = storageVal !== '' ? parseFloat(storageVal) || null : null;
+  const g = groups.find(x => x.group_id === gid);
+  if (g) {
+    await fetch(`/api/groups/${gid}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...g, storage_limit_gb: storageGB }),
+    });
+  }
+
   const sel = document.getElementById('dur-' + gid);
   const cust = document.getElementById('cust-' + gid);
   let expiresAt = null;
@@ -1044,6 +1093,48 @@ async function saveGroup(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...g, ...data }),
   });
+}
+
+async function loadStorageUsage(groupId) {
+  const el = document.getElementById('storage-bar-wrap');
+  if (!el) return;
+  const data = await fetch(`/api/groups/${groupId}/storage`).then(r => r.json()).catch(() => null);
+  if (!data || data.limitGB == null) {
+    el.innerHTML = `
+      <div style="background:white;border-radius:12px;padding:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;color:#888">💾 พื้นที่จัดเก็บ</span>
+        <span style="font-size:12px;color:#aaa">ไม่ได้กำหนดขนาด</span>
+      </div>`;
+    return;
+  }
+  const limitBytes = data.limitGB * 1024 * 1024 * 1024;
+  const pct = Math.min(100, Math.round(data.usedBytes / limitBytes * 100));
+  const barColor = pct >= 90 ? '#f44336' : pct >= 70 ? '#ff9800' : '#06c755';
+  const usedGB = (data.usedBytes / (1024 * 1024 * 1024)).toFixed(2);
+  el.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600;color:#333">💾 พื้นที่จัดเก็บ</span>
+        <span style="font-size:13px;font-weight:700;color:${barColor}">${pct}%</span>
+      </div>
+      <div style="background:#e8eaed;border-radius:8px;overflow:hidden;height:12px">
+        <div style="width:${pct}%;background:${barColor};height:100%;border-radius:8px;transition:width 0.6s ease"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span style="font-size:11px;color:#888">ใช้ไป <strong style="color:${barColor}">${usedGB} GB</strong></span>
+        <span style="font-size:11px;color:#888">ทั้งหมด <strong>${data.limitGB} GB</strong></span>
+      </div>
+    </div>`;
+}
+
+async function saveStorageLimit() {
+  const val = document.getElementById('storage_limit_gb').value.trim();
+  const limitGB = val !== '' ? parseFloat(val) || null : null;
+  await saveGroup({ storage_limit_gb: limitGB });
+  const g = groups.find(x => x.group_id === currentGroupId);
+  if (g) g.storage_limit_gb = limitGB;
+  await loadStorageUsage(currentGroupId);
+  showToast(limitGB ? `กำหนดพื้นที่ ${limitGB} GB แล้ว 💾` : 'ยกเลิกการจำกัดพื้นที่แล้ว');
 }
 
 async function sendMsg() {
